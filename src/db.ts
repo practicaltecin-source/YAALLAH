@@ -405,19 +405,29 @@ export function mergeDatabase(localDb: Database, remoteDb: Database, forcePrefer
   if (!localDb) return remoteDb;
   if (!remoteDb) return localDb;
 
-  const localTime = Number(localDb.lastModified || 0);
-  const remoteTime = Number(remoteDb.lastModified || 0);
+  const hasLocalData = (localDb.programs?.length || 0) > 0 || (localDb.participants?.length || 0) > 0 || (localDb.results?.length || 0) > 0;
+  const hasRemoteData = (remoteDb.programs?.length || 0) > 0 || (remoteDb.participants?.length || 0) > 0 || (remoteDb.results?.length || 0) > 0;
+
+  // If local device has NO data (e.g. newly opened phone/browser) but remote cloud has real data, ALWAYS adopt remote!
+  if (!hasLocalData && hasRemoteData) {
+    return remoteDb;
+  }
 
   if (forcePreferRemote) {
     return remoteDb;
   }
 
-  // Strictly respect timestamps so resets and deletions are never overwritten by stale older snapshots
-  if (localTime > remoteTime) {
-    return localDb;
-  }
+  const localTime = Number(localDb.lastModified || 0);
+  const remoteTime = Number(remoteDb.lastModified || 0);
+
+  // If remote has newer changes or equal timestamp with more data
   if (remoteTime > localTime) {
     return remoteDb;
+  }
+
+  // If local has strictly newer changes and actually has data
+  if (localTime > remoteTime && hasLocalData) {
+    return localDb;
   }
 
   const mergedSettings = mergeSettings(localDb?.settings, remoteDb?.settings, false);
@@ -430,7 +440,7 @@ export function mergeDatabase(localDb: Database, remoteDb: Database, forcePrefer
     results: (localDb.results && localDb.results.length > 0) ? localDb.results : (remoteDb.results || []),
     settings: mergedSettings,
     prevRanks: { ...(localDb.prevRanks || {}), ...(remoteDb.prevRanks || {}) },
-    lastModified: localTime
+    lastModified: Math.max(localTime, remoteTime)
   };
 }
 

@@ -18,8 +18,12 @@ import {
   AGE_ICONS, 
   GENDER_ICONS, 
   classToAge, 
-  generateId 
+  generateId,
+  pushToAppsScriptDirect,
+  fetchFromAppsScriptDirect,
+  pushToFirebase
 } from '../db';
+import { saveToFirestore, fetchFromFirestore } from '../firebase';
 import { getProgramScheduleStatus } from '../utils/time';
 import { 
   ShieldAlert, 
@@ -167,13 +171,17 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
     setNewNoticeType(n.type);
   };
 
-  // Google Sheets Quick Manager States
+  // Google Sheets & Apps Script Quick Manager States
   const [showSheetsManager, setShowSheetsManager] = useState(false);
+  const [sheetSyncMethod, setSheetSyncMethod] = useState<'webhook' | 'oauth'>('webhook');
   const [sheetId, setSheetIdState] = useState<string>(() => getSavedSheetId() || '');
+  const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => db.settings?.sheetWebhookUrl || db.settings?.appsScriptUrl || localStorage.getItem('mrms_apps_script_url') || '');
   const [autoSync, setAutoSyncState] = useState<boolean>(() => isAutoSyncEnabled());
   const [sheetsLoading, setSheetsLoading] = useState<boolean>(false);
   const [sheetsStatusMsg, setSheetsStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [googleUserEmail, setGoogleUserEmail] = useState<string | null>(null);
+  const [showAppsScriptModal, setShowAppsScriptModal] = useState(false);
+  const [copiedScriptCode, setCopiedScriptCode] = useState(false);
 
   // Auto-check OAuth redirect result if popups were blocked
   useState(() => {
@@ -187,6 +195,95 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
       }
     });
   });
+
+  const handlePushViaWebhook = async (customUrl?: string) => {
+    const target = (customUrl !== undefined ? customUrl : appsScriptUrl).trim();
+    if (!target) {
+      setSheetsStatusMsg({ type: 'error', text: 'Please enter a valid Google Apps Script Web App URL.' });
+      return;
+    }
+    setSheetsLoading(true);
+    setSheetsStatusMsg(null);
+    try {
+      const updated: Database = {
+        ...db,
+        settings: {
+          ...db.settings,
+          sheetWebhookUrl: target,
+          appsScriptUrl: target
+        }
+      };
+      localStorage.setItem('mrms_apps_script_url', target);
+      onUpdateDb(updated);
+      const ok = await pushToAppsScriptDirect(updated);
+      if (ok) {
+        setSheetsStatusMsg({ type: 'success', text: '✅ Competition data successfully synced to Google Sheet via Webhook!' });
+      } else {
+        setSheetsStatusMsg({ type: 'error', text: 'Failed to push to Webhook. Please ensure your Google Apps Script is deployed as "Web App" with Execute as: "Me" and Who has access: "Anyone".' });
+      }
+    } catch (e: any) {
+      setSheetsStatusMsg({ type: 'error', text: e?.message || 'Error connecting to Apps Script Webhook.' });
+    } finally {
+      setSheetsLoading(false);
+    }
+  };
+
+  const handlePullViaWebhook = async (customUrl?: string) => {
+    const target = (customUrl !== undefined ? customUrl : appsScriptUrl).trim();
+    if (!target) {
+      setSheetsStatusMsg({ type: 'error', text: 'Please enter a valid Google Apps Script Web App URL.' });
+      return;
+    }
+    setSheetsLoading(true);
+    setSheetsStatusMsg(null);
+    try {
+      const fetched = await fetchFromAppsScriptDirect(target);
+      if (fetched) {
+        onUpdateDb(fetched);
+        setSheetsStatusMsg({ type: 'success', text: `✅ Successfully imported ${fetched.participants?.length || 0} participants, ${fetched.programs?.length || 0} programs, and ${fetched.teams?.length || 0} teams from Google Sheet!` });
+      } else {
+        setSheetsStatusMsg({ type: 'error', text: 'Could not fetch data from Google Sheet. If this is a new sheet, please click "Push to Sheet via Webhook" first to initialize the data.' });
+      }
+    } catch (e: any) {
+      setSheetsStatusMsg({ type: 'error', text: e?.message || 'Failed to pull data from Apps Script Webhook.' });
+    } finally {
+      setSheetsLoading(false);
+    }
+  };
+
+  const [cloudSyncLoading, setCloudSyncLoading] = useState(false);
+  const [cloudSyncStatusMsg, setCloudSyncStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleBroadcastToAllDevices = async () => {
+    setCloudSyncLoading(true);
+    setCloudSyncStatusMsg(null);
+    try {
+      const updatedWithTimestamp: Database = {
+        ...db,
+        lastModified: Date.now()
+      };
+      onUpdateDb(updatedWithTimestamp);
+      const ok = await saveToFirestore(updatedWithTimestamp);
+      await pushToFirebase(updatedWithTimestamp);
+      
+      // Also push to webhook if configured
+      if (db.settings?.sheetWebhookUrl || appsScriptUrl) {
+        pushToAppsScriptDirect(updatedWithTimestamp).catch(() => {});
+      }
+
+      setCloudSyncStatusMsg({
+        type: 'success',
+        text: `✅ ഡാറ്റ ക്ലൗഡിലേക്ക് വിജയകരമായി അപ്‌ലോഡ് ചെയ്തു! മറ്റ് ഫോണുകളിലും ഡിവൈസുകളിലും ഇപ്പോൾ തന്നെ കാണാൻ സാധിക്കും (${updatedWithTimestamp.participants?.length || 0} participants, ${updatedWithTimestamp.programs?.length || 0} programs, ${updatedWithTimestamp.results?.length || 0} results).`
+      });
+    } catch (e: any) {
+      setCloudSyncStatusMsg({
+        type: 'error',
+        text: e?.message || 'ക്ലൗഡ് സിങ്ക് ചെയ്യുമ്പോൾ തടസ്സം നേരിട്ടു. വീണ്ടും ശ്രമിക്കുക.'
+      });
+    } finally {
+      setCloudSyncLoading(false);
+    }
+  };
 
   const handleQuickSheetAuth = async () => {
     setSheetsLoading(true);
@@ -213,14 +310,24 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
   };
 
   const handleQuickSheetSync = async () => {
+    const webhook = (appsScriptUrl || db.settings?.sheetWebhookUrl || db.settings?.appsScriptUrl || '').trim();
     let token = getCachedToken();
+
+    // If Webhook URL is present and user is not signed into Google OAuth, prioritize direct Webhook Push
+    if (webhook && (!token || !sheetId)) {
+      return handlePushViaWebhook(webhook);
+    }
+
     if (!token) {
       try {
         const res = await signInWithGoogleForSheets();
         token = res.accessToken;
         setGoogleUserEmail(res.user.email);
       } catch (err: any) {
-        setSheetsStatusMsg({ type: 'error', text: 'Google Sign-in required for sync.' });
+        setSheetsStatusMsg({ 
+          type: 'error', 
+          text: err?.message || 'Google Sign-in failed. You can use the "Apps Script Webhook" tab above to sync directly without sign-in!' 
+        });
         return;
       }
     }
@@ -472,14 +579,24 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
   };
 
   const handleQuickPullSheet = async () => {
+    const webhook = (appsScriptUrl || db.settings?.sheetWebhookUrl || db.settings?.appsScriptUrl || '').trim();
     let token = getCachedToken();
+
+    // If Webhook URL is present and no OAuth token, prioritize Webhook Pull!
+    if (webhook && (!token || !sheetId)) {
+      return handlePullViaWebhook(webhook);
+    }
+
     if (!token) {
       try {
         const res = await signInWithGoogleForSheets();
         token = res.accessToken;
         setGoogleUserEmail(res.user.email);
       } catch (err: any) {
-        setSheetsStatusMsg({ type: 'error', text: 'Google Sign-in required to import sheet data.' });
+        setSheetsStatusMsg({ 
+          type: 'error', 
+          text: err?.message || 'Google Sign-in failed. You can use the "Apps Script Webhook" tab to sync directly without sign-in!' 
+        });
         return;
       }
     }
@@ -3250,6 +3367,52 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
         </div>
       </div>
 
+      {/* Multi-Device Cloud Live Sync Broadcast Bar */}
+      <div className="p-3.5 bg-gradient-to-r from-blue-600/15 via-indigo-600/10 to-sky-500/15 border-2 border-blue-500/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+            📲
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-black text-xs text-blue-950 uppercase tracking-wide">
+                Multi-Device Cloud Sync (മൾട്ടി-ഡിവൈസ് ലൈവ് സിങ്ക്):
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 bg-blue-600 text-white flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                <span>🔥 LIVE ACROSS ALL PHONES</span>
+              </span>
+            </div>
+            <span className="text-[11px] text-blue-900 block mt-0.5 font-medium">
+              മറ്റുള്ള ഫോണുകളിലും ഡിവൈസുകളിലും പുതിയ റിസൾട്ടുകളും പോയിന്റുകളും ഉടൻ കാണാൻ താഴെ കാണുന്ന ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            onClick={handleBroadcastToAllDevices}
+            disabled={cloudSyncLoading}
+            className="w-full sm:w-auto py-2 px-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${cloudSyncLoading ? 'animate-spin' : ''}`} />
+            <span>{cloudSyncLoading ? 'ക്ലൗഡിലേക്ക് അയക്കുന്നു...' : '⚡ Sync & Push to All Devices (എല്ലാ ഫോണിലേക്കും അയക്കുക)'}</span>
+          </button>
+        </div>
+      </div>
+
+      {cloudSyncStatusMsg && (
+        <div className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between gap-2 animate-fadeIn ${
+          cloudSyncStatusMsg.type === 'success' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-red-100 text-red-900 border border-red-300'
+        }`}>
+          <span>{cloudSyncStatusMsg.text}</span>
+          <button onClick={() => setCloudSyncStatusMsg(null)} className="p-0.5 hover:bg-black/10 rounded">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Google Sheets Live Sync Quick Bar */}
       <div className="p-3 bg-gradient-to-r from-emerald-500/15 via-teal-600/10 to-emerald-500/15 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-sm">
         <div className="flex items-center gap-2 min-w-0">
@@ -3313,105 +3476,484 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
             <span className="font-extrabold text-xs text-emerald-950 flex items-center gap-1.5">
               <span>📊</span> Google Sheets Live Integration & Sync Manager
             </span>
-            <label className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoSync}
-                onChange={(e) => handleToggleAutoSync(e.target.checked)}
-                className="w-4 h-4 rounded accent-emerald-600 cursor-pointer"
-              />
-              Enable Auto-Sync
-            </label>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoSync}
+                  onChange={(e) => handleToggleAutoSync(e.target.checked)}
+                  className="w-4 h-4 rounded accent-emerald-600 cursor-pointer"
+                />
+                Enable Auto-Sync
+              </label>
+              <button
+                onClick={() => setShowSheetsManager(false)}
+                className="p-1 hover:bg-emerald-200 rounded-lg text-emerald-900 transition-colors"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
+          {/* Sync Method Selection Tabs */}
+          <div className="grid grid-cols-2 gap-2 bg-emerald-100/70 p-1.5 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setSheetSyncMethod('webhook')}
+              className={`py-2 px-3 rounded-lg font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                sheetSyncMethod === 'webhook'
+                  ? 'bg-white text-emerald-950 shadow-sm border border-emerald-300'
+                  : 'text-emerald-800 hover:text-emerald-950'
+              }`}
+            >
+              <span>⚡</span> Apps Script Webhook
+              <span className="px-1.5 py-0.2 bg-emerald-600 text-white text-[9px] rounded-full">Easy / No Login</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSheetSyncMethod('oauth')}
+              className={`py-2 px-3 rounded-lg font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                sheetSyncMethod === 'oauth'
+                  ? 'bg-white text-emerald-950 shadow-sm border border-emerald-300'
+                  : 'text-emerald-800 hover:text-emerald-950'
+              }`}
+            >
+              <span>🔑</span> Google OAuth API
+              <span className="px-1.5 py-0.2 bg-sky-600 text-white text-[9px] rounded-full">Sign-In</span>
+            </button>
+          </div>
+
+          {/* Dismissible Status Message */}
           {sheetsStatusMsg && (
-            <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
+            <div className={`p-3 rounded-xl text-xs font-semibold flex items-start justify-between gap-2 border ${
               sheetsStatusMsg.type === 'success' ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-rose-100 text-rose-900 border-rose-300'
             }`}>
-              <span>{sheetsStatusMsg.type === 'success' ? '✅' : '⚠️'}</span>
-              <span>{sheetsStatusMsg.text}</span>
+              <div className="flex items-start gap-2 min-w-0">
+                <span className="shrink-0 mt-0.5">{sheetsStatusMsg.type === 'success' ? '✅' : '⚠️'}</span>
+                <span className="break-words">{sheetsStatusMsg.text}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSheetsStatusMsg(null)}
+                className="p-1 hover:bg-black/10 rounded text-xs font-bold shrink-0 cursor-pointer"
+                title="Dismiss message"
+              >
+                ✕
+              </button>
             </div>
           )}
 
-          {/* Account Authentication status */}
-          <div className="bg-white p-3 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
-            <div>
-              <div className="text-xs font-bold text-brand-green-950">
-                {googleUserEmail ? `Connected Account: ${googleUserEmail}` : 'Google Account Login Status'}
+          {/* METHOD 1: Apps Script Webhook (Zero login / Domain restriction free) */}
+          {sheetSyncMethod === 'webhook' && (
+            <div className="space-y-3 bg-white p-3.5 border border-emerald-200 rounded-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-100 pb-2">
+                <div>
+                  <h4 className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                    <span>⚡</span> Google Apps Script Web App Webhook
+                  </h4>
+                  <p className="text-[10px] text-brand-ink-soft">
+                    Google Sign-in അല്ലെങ്കിൽ ഡൊമെയ്ൻ ക്രമീകരണങ്ങൾ ആവശ്യമില്ലാതെ ഷീറ്റിലേക്ക് ഡാറ്റ Push / Pull ചെയ്യാം.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAppsScriptModal(true)}
+                  className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-[11px] rounded-lg border border-emerald-300 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                >
+                  <span>📜</span> View & Copy Script Code
+                </button>
               </div>
-              <div className="text-[10px] text-brand-ink-soft">
-                {googleUserEmail ? 'OAuth authentication active for Google Sheets API' : 'Sign in with Google to authorize automatic sheets updating'}
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold text-emerald-900 block">
+                  Google Apps Script Web App URL (<code className="text-emerald-700">https://script.google.com/macros/s/.../exec</code>)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={appsScriptUrl}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      setAppsScriptUrl(val);
+                      localStorage.setItem('mrms_apps_script_url', val);
+                      onUpdateDb({
+                        ...db,
+                        settings: {
+                          ...db.settings,
+                          sheetWebhookUrl: val,
+                          appsScriptUrl: val
+                        }
+                      });
+                    }}
+                    placeholder="Paste Apps Script Web App URL (https://script.google.com/macros/s/.../exec)"
+                    className="flex-1 px-3 py-2 bg-emerald-50/50 border border-emerald-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {appsScriptUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppsScriptUrl('');
+                        localStorage.removeItem('mrms_apps_script_url');
+                      }}
+                      className="px-2.5 py-1 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg cursor-pointer"
+                      title="Clear URL"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-100">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePushViaWebhook()}
+                    disabled={sheetsLoading || !appsScriptUrl}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${sheetsLoading ? 'animate-spin' : ''}`} />
+                    Push to Sheet via Webhook
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePullViaWebhook()}
+                    disabled={sheetsLoading || !appsScriptUrl}
+                    className="px-3 py-2 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    📥 Pull Data from Sheet
+                  </button>
+                </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleQuickSheetAuth}
-              disabled={sheetsLoading}
-              className="px-3 py-1.5 bg-brand-green-900 hover:bg-brand-green-950 text-white font-bold text-xs rounded-lg transition-all shrink-0 cursor-pointer disabled:opacity-50"
-            >
-              {googleUserEmail ? 'Re-Authenticate' : 'Sign In with Google'}
-            </button>
-          </div>
+          )}
 
-          {/* Sheet ID & Link Controls */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-emerald-900 block">Connected Google Sheet ID / Link</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={sheetId}
-                onChange={(e) => {
-                  let val = e.target.value.trim();
-                  if (val.includes('/spreadsheets/d/')) {
-                    const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-                    if (match && match[1]) val = match[1];
-                  }
-                  setSheetIdState(val);
-                  saveSheetId(val);
-                }}
-                placeholder="Paste Google Sheet ID or Full URL"
-                className="flex-1 px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <button
-                type="button"
-                onClick={handleQuickCreateSheet}
-                disabled={sheetsLoading}
-                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer transition-all shrink-0 disabled:opacity-50"
-              >
-                ➕ Create New Sheet
-              </button>
+          {/* METHOD 2: Google Sheets OAuth API */}
+          {sheetSyncMethod === 'oauth' && (
+            <div className="space-y-3 bg-white p-3.5 border border-emerald-200 rounded-xl">
+              {/* Account Authentication status */}
+              <div className="bg-emerald-50/70 p-3 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs font-bold text-brand-green-950">
+                    {googleUserEmail ? `Connected Account: ${googleUserEmail}` : 'Google Account Login Status'}
+                  </div>
+                  <div className="text-[10px] text-brand-ink-soft">
+                    {googleUserEmail ? 'OAuth authentication active for Google Sheets API' : 'Sign in with Google to authorize direct sheets updating'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleQuickSheetAuth}
+                  disabled={sheetsLoading}
+                  className="px-3 py-1.5 bg-brand-green-900 hover:bg-brand-green-950 text-white font-bold text-xs rounded-lg transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                >
+                  {googleUserEmail ? 'Re-Authenticate' : 'Sign In with Google'}
+                </button>
+              </div>
+
+              {/* Sheet ID & Link Controls */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-emerald-900 block">Connected Google Sheet ID or Full URL</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={sheetId}
+                    onChange={(e) => {
+                      let val = e.target.value.trim();
+                      if (val.includes('/spreadsheets/d/')) {
+                        const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                        if (match && match[1]) val = match[1];
+                      }
+                      setSheetIdState(val);
+                      saveSheetId(val);
+                    }}
+                    placeholder="Paste Google Sheet ID or Full URL"
+                    className="flex-1 px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleQuickCreateSheet}
+                    disabled={sheetsLoading}
+                    className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer transition-all shrink-0 disabled:opacity-50"
+                  >
+                    ➕ Create New Sheet
+                  </button>
+                </div>
+              </div>
+
+              {/* Push / Pull for OAuth */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleQuickSheetSync}
+                    disabled={sheetsLoading || !sheetId}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${sheetsLoading ? 'animate-spin' : ''}`} />
+                    Push to Google Sheet Now
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleQuickPullSheet}
+                    disabled={sheetsLoading || !sheetId}
+                    className="px-3 py-2 bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    📥 Pull Data from Sheet
+                  </button>
+                </div>
+              </div>
+
+              {/* Authorized Domain Tip Box */}
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-900 leading-relaxed">
+                <strong>💡 Note on 'auth/unauthorized-domain':</strong> If Google sign-in shows this error, add <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">{typeof window !== 'undefined' ? window.location.hostname : 'your domain'}</code> in Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains. Or switch to the <strong>Apps Script Webhook</strong> tab above to sync without any sign-in!
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Manual Push / Pull Action Buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleQuickSheetSync}
-                disabled={sheetsLoading || !sheetId}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${sheetsLoading ? 'animate-spin' : ''}`} />
-                Push to Google Sheet Now
-              </button>
-
-              <button
-                type="button"
-                onClick={handleQuickPullSheet}
-                disabled={sheetsLoading || !sheetId}
-                className="px-3 py-2 bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
-              >
-                📥 Pull Data from Sheet
-              </button>
-            </div>
-
+          <div className="flex justify-end pt-1">
             <button
               onClick={() => setShowSheetsManager(false)}
-              className="px-3 py-1.5 border border-emerald-300 text-emerald-900 font-bold text-xs rounded-xl hover:bg-emerald-100 cursor-pointer"
+              className="px-4 py-1.5 border border-emerald-300 text-emerald-900 font-bold text-xs rounded-xl hover:bg-emerald-100 cursor-pointer"
             >
-              Done
+              Close Setup
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Google Apps Script Code Modal */}
+      {showAppsScriptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-emerald-200 overflow-hidden">
+            <div className="p-4 bg-emerald-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📜</span>
+                <div>
+                  <h3 className="font-extrabold text-sm">Google Apps Script Web App Code</h3>
+                  <p className="text-[11px] text-emerald-200">Copy this code into your Google Sheet &gt; Extensions &gt; Apps Script</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAppsScriptModal(false)}
+                className="p-1.5 hover:bg-emerald-700 rounded-lg text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto space-y-4 text-xs text-brand-green-950">
+              <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 space-y-1.5">
+                <h4 className="font-bold text-emerald-900">📋 Setup Instructions (ലളിതമായ 3 ഘട്ടങ്ങൾ):</h4>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] text-emerald-800">
+                  <li>നിങ്ങളുടെ ഗൂഗിൾ ഷീറ്റ് തുറന്ന് മുകളിലെ മെനുവിൽ <strong>Extensions &gt; Apps Script</strong> ക്ലിക്ക് ചെയ്യുക.</li>
+                  <li>അവിടെയുള്ള കോഡ് മാറ്റി താഴെ കാണുന്ന കോഡ് പേസ്റ്റ് ചെയ്ത് <strong>Save (💾)</strong> ചെയ്യുക.</li>
+                  <li>മുകളിൽ വലതുവശത്ത് <strong>Deploy &gt; New deployment</strong> ക്ലിക്ക് ചെയ്യുക.
+                    <ul className="list-disc list-inside ml-4 mt-0.5 text-emerald-700">
+                      <li>Type: <strong>Web app</strong></li>
+                      <li>Execute as: <strong>Me</strong></li>
+                      <li>Who has access: <strong>Anyone</strong> (ഇത് വളരെ പ്രധാനമാണ്)</li>
+                    </ul>
+                  </li>
+                  <li>Deploy ചെയ്ത ശേഷം കിട്ടുന്ന <strong>Web app URL</strong> കോപ്പി ചെയ്ത് പോർട്ടലിൽ പേസ്റ്റ് ചെയ്യുക!</li>
+                </ol>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-emerald-900">Google Apps Script Code:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = `function doGet(e) {
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var postData = "";
+    if (e && e.postData && e.postData.contents) {
+      postData = e.postData.contents;
+    }
+    
+    var req = {};
+    if (postData) {
+      try { req = JSON.parse(postData); } catch(err) {}
+    }
+    
+    var action = (e && e.parameter && e.parameter.action) || req.action || "read";
+    
+    if (action === "write") {
+      var db = req.db || req;
+      var dataSheet = ss.getSheetByName("FEST_PORTAL_DATA");
+      if (!dataSheet) {
+        dataSheet = ss.insertSheet("FEST_PORTAL_DATA");
+      }
+      dataSheet.clear();
+      var jsonStr = JSON.stringify(db);
+      var chunkSize = 40000;
+      var chunks = [];
+      for (var i = 0; i < jsonStr.length; i += chunkSize) {
+        chunks.push([jsonStr.substring(i, i + chunkSize)]);
+      }
+      dataSheet.getRange(1, 1, chunks.length, 1).setValues(chunks);
+      
+      // Update Scoreboard Sheet if teams exist
+      if (db.teams && Array.isArray(db.teams)) {
+        var scoreSheet = ss.getSheetByName("Scoreboard");
+        if (!scoreSheet) scoreSheet = ss.insertSheet("Scoreboard");
+        scoreSheet.clear();
+        scoreSheet.appendRow(["Rank", "Team Name", "Symbol", "Total Points"]);
+        var sortedTeams = db.teams.slice().sort(function(a, b) { return (b.points || 0) - (a.points || 0); });
+        for (var t = 0; t < sortedTeams.length; t++) {
+          scoreSheet.appendRow([t + 1, sortedTeams[t].name, sortedTeams[t].symbol || "", sortedTeams[t].points || 0]);
+        }
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Data saved successfully" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else {
+      // READ ACTION
+      var dataSheet = ss.getSheetByName("FEST_PORTAL_DATA");
+      if (!dataSheet) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "empty", db: null }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var values = dataSheet.getDataRange().getValues();
+      var jsonStr = "";
+      for (var r = 0; r < values.length; r++) {
+        jsonStr += values[r][0];
+      }
+      if (!jsonStr) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "empty", db: null }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var db = JSON.parse(jsonStr);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", db: db }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}`;
+                      navigator.clipboard.writeText(code);
+                      setCopiedScriptCode(true);
+                      setTimeout(() => setCopiedScriptCode(false), 3000);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    {copiedScriptCode ? 'Copied to Clipboard!' : 'Copy Code'}
+                  </button>
+                </div>
+                <pre className="p-3 bg-gray-900 text-emerald-300 font-mono text-[10px] rounded-xl overflow-x-auto max-h-60 leading-relaxed border border-gray-800">
+{`function doGet(e) {
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var postData = "";
+    if (e && e.postData && e.postData.contents) {
+      postData = e.postData.contents;
+    }
+    
+    var req = {};
+    if (postData) {
+      try { req = JSON.parse(postData); } catch(err) {}
+    }
+    
+    var action = (e && e.parameter && e.parameter.action) || req.action || "read";
+    
+    if (action === "write") {
+      var db = req.db || req;
+      var dataSheet = ss.getSheetByName("FEST_PORTAL_DATA");
+      if (!dataSheet) {
+        dataSheet = ss.insertSheet("FEST_PORTAL_DATA");
+      }
+      dataSheet.clear();
+      var jsonStr = JSON.stringify(db);
+      var chunkSize = 40000;
+      var chunks = [];
+      for (var i = 0; i < jsonStr.length; i += chunkSize) {
+        chunks.push([jsonStr.substring(i, i + chunkSize)]);
+      }
+      dataSheet.getRange(1, 1, chunks.length, 1).setValues(chunks);
+      
+      // Update Scoreboard Sheet if teams exist
+      if (db.teams && Array.isArray(db.teams)) {
+        var scoreSheet = ss.getSheetByName("Scoreboard");
+        if (!scoreSheet) scoreSheet = ss.insertSheet("Scoreboard");
+        scoreSheet.clear();
+        scoreSheet.appendRow(["Rank", "Team Name", "Symbol", "Total Points"]);
+        var sortedTeams = db.teams.slice().sort(function(a, b) { return (b.points || 0) - (a.points || 0); });
+        for (var t = 0; t < sortedTeams.length; t++) {
+          scoreSheet.appendRow([t + 1, sortedTeams[t].name, sortedTeams[t].symbol || "", sortedTeams[t].points || 0]);
+        }
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Data saved successfully" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else {
+      // READ ACTION
+      var dataSheet = ss.getSheetByName("FEST_PORTAL_DATA");
+      if (!dataSheet) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "empty", db: null }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var values = dataSheet.getDataRange().getValues();
+      var jsonStr = "";
+      for (var r = 0; r < values.length; r++) {
+        jsonStr += values[r][0];
+      }
+      if (!jsonStr) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "empty", db: null }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var db = JSON.parse(jsonStr);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", db: db }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}`}
+                </pre>
+              </div>
+            </div>
+
+            <div className="p-3 bg-gray-50 border-t border-gray-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAppsScriptModal(false)}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

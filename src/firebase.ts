@@ -1,10 +1,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, setDoc, getDoc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfigJson from '../firebase-applet-config.json';
 import { Database } from './types';
 
-// Self-contained fallback configuration so Vercel, Netlify, and GitHub Pages deployments work seamlessly out of the box
+// Self-contained configuration for Firebase multi-device real-time sync
 const DEFAULT_FIREBASE_CONFIG = {
   projectId: "gen-lang-client-0985237405",
   appId: "1:912676369445:web:3674ac7e0e659740b8fbcc",
@@ -26,6 +26,18 @@ export const db = getFirestore(app, resolvedConfig.firestoreDatabaseId || '(defa
 
 const APP_STATE_DOC = doc(db, 'appState', 'current');
 
+// Validate connection to Firestore on boot as per Firebase guidelines
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn("Firestore client appears offline or connecting...");
+    }
+  }
+}
+testConnection();
+
 let isQuotaExhausted = false;
 
 function handleQuotaError(error: any) {
@@ -34,7 +46,7 @@ function handleQuotaError(error: any) {
   const isQuota = 
     code === 'resource-exhausted' || 
     msg.includes('Quota limit exceeded') || 
-    msg.includes('resource-exhausted') ||
+    msg.includes('resource-exhausted') || 
     msg.includes('Write stream exhausted') ||
     msg.includes('Quota exceeded') ||
     msg.includes('quota metric');
@@ -42,7 +54,7 @@ function handleQuotaError(error: any) {
   if (isQuota) {
     if (!isQuotaExhausted) {
       isQuotaExhausted = true;
-      console.warn('Firestore daily quota reached. Falling back gracefully to LocalStorage & external sync.');
+      console.warn('Firestore daily quota reached. Falling back to multi-device sync.');
     }
     return true;
   }
@@ -55,6 +67,7 @@ export async function saveToFirestore(dbData: Database): Promise<boolean> {
     // Sanitize undefined fields for Firestore compatibility
     const sanitized = JSON.parse(JSON.stringify(dbData));
     await setDoc(APP_STATE_DOC, sanitized);
+    console.log('✅ Successfully synced database to Cloud Firestore document (/appState/current)');
     return true;
   } catch (error: any) {
     if (!handleQuotaError(error)) {
@@ -80,7 +93,10 @@ export async function fetchFromFirestore(): Promise<Database | null> {
   try {
     const snap = await getDoc(APP_STATE_DOC);
     if (snap.exists()) {
-      return snap.data() as Database;
+      const data = snap.data() as Database;
+      if (data && Array.isArray(data.teams)) {
+        return data;
+      }
     }
     return null;
   } catch (error: any) {
@@ -99,7 +115,7 @@ export function subscribeToFirestore(onUpdate: (data: Database) => void): () => 
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as Database;
-          if (data && data.teams) {
+          if (data && Array.isArray(data.teams)) {
             onUpdate(data);
           }
         }

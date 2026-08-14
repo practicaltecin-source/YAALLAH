@@ -118,6 +118,10 @@ export async function signInWithGoogleForSheets(): Promise<{ user: User; accessT
     return { user: result.user, accessToken: credential.accessToken };
   } catch (error: any) {
     console.error('Google Sheets auth error:', error);
+    if (error?.code === 'auth/unauthorized-domain') {
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+      throw new Error(`Firebase Auth: Domain '${currentHost}' is not authorized. Add '${currentHost}' in Firebase Console > Authentication > Settings > Authorized domains. OR use Google Apps Script Webhook directly without sign-in.`);
+    }
     if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user' || error?.message?.includes('popup')) {
       try {
         console.log('Popup blocked. Attempting signInWithRedirect...');

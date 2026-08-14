@@ -29,7 +29,7 @@ import {
   syncDataToGoogleSheet, 
   queueAutoSyncToGoogleSheet 
 } from './googleSheets';
-import { subscribeToFirestore, resetFirestoreClean } from './firebase';
+import { subscribeToFirestore, resetFirestoreClean, fetchFromFirestore } from './firebase';
 import { WifiOff, Lock, ShieldAlert } from 'lucide-react';
 import Splash from './components/Splash';
 import Header from './components/Header';
@@ -107,6 +107,25 @@ export default function App() {
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
+      // 1. First attempt instant Firestore fetch
+      const cloudData = await fetchFromFirestore().catch(() => null);
+      if (cloudData && Array.isArray(cloudData.teams)) {
+        const normalized = normalizeDB(cloudData);
+        if (normalized) {
+          const currentLocal = dbRef.current || loadDB();
+          const hasLocalData = (currentLocal.programs?.length || 0) > 0 || (currentLocal.participants?.length || 0) > 0 || (currentLocal.results?.length || 0) > 0;
+          const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
+          const preferRemote = (!hasLocalData && hasRemoteData) || (Number(normalized.lastModified || 0) >= Number(currentLocal.lastModified || 0));
+
+          const merged = mergeDatabase(currentLocal, normalized, preferRemote);
+          const calculated = calculatePoints(merged);
+          saveDBLocal(calculated, true);
+          dbRef.current = calculated;
+          setDb(calculated);
+        }
+      }
+
+      // 2. Perform general sync
       const res = await syncDatabase(dbRef.current);
       if (res.updated) {
         const calculated = calculatePoints(res.db);
@@ -122,7 +141,7 @@ export default function App() {
     }
   };
 
-  // Sync state once on page load, periodically every 5 seconds, and on cross-tab storage changes
+  // Sync state once on page load, periodically every 4 seconds, and on cross-tab storage changes
   useEffect(() => {
     let isSyncing = false;
     const syncData = async () => {
@@ -142,6 +161,25 @@ export default function App() {
       }
     };
 
+    // Initial immediate fetch from Firestore on page load
+    fetchFromFirestore().then((cloudData) => {
+      if (cloudData && Array.isArray(cloudData.teams)) {
+        const normalized = normalizeDB(cloudData);
+        if (normalized) {
+          const currentLocal = dbRef.current || loadDB();
+          const hasLocalData = (currentLocal.programs?.length || 0) > 0 || (currentLocal.participants?.length || 0) > 0 || (currentLocal.results?.length || 0) > 0;
+          const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
+          const preferRemote = (!hasLocalData && hasRemoteData) || (Number(normalized.lastModified || 0) >= Number(currentLocal.lastModified || 0));
+
+          const merged = mergeDatabase(currentLocal, normalized, preferRemote);
+          const calculated = calculatePoints(merged);
+          saveDBLocal(calculated, true);
+          dbRef.current = calculated;
+          setDb(calculated);
+        }
+      }
+    }).catch(() => {});
+
     // Initial sync on page load
     syncData();
 
@@ -151,7 +189,11 @@ export default function App() {
         const normalized = normalizeDB(firestoreData);
         if (normalized) {
           const currentLocal = dbRef.current || loadDB();
-          const merged = mergeDatabase(currentLocal, normalized, false);
+          const hasLocalData = (currentLocal.programs?.length || 0) > 0 || (currentLocal.participants?.length || 0) > 0 || (currentLocal.results?.length || 0) > 0;
+          const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
+          const preferRemote = (!hasLocalData && hasRemoteData) || (Number(normalized.lastModified || 0) >= Number(currentLocal.lastModified || 0));
+
+          const merged = mergeDatabase(currentLocal, normalized, preferRemote);
           const calculated = calculatePoints(merged);
           saveDBLocal(calculated, true);
           dbRef.current = calculated;
@@ -160,8 +202,8 @@ export default function App() {
       }
     });
 
-    // Fast multi-device background sync every 5 seconds (fetches latest Google Sheet & Firestore data)
-    const pollInterval = setInterval(syncData, 5000);
+    // Fast multi-device background sync every 4 seconds (fetches latest Google Sheet & Firestore data)
+    const pollInterval = setInterval(syncData, 4000);
 
     // Sync across tabs in the same browser
     let channel: any = null;
