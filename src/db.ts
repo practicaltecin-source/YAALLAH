@@ -414,21 +414,31 @@ export function mergeSettings(localSettings: Settings, remoteSettings: Settings,
   if (!localSettings) return remoteSettings || defaultDB().settings;
   if (!remoteSettings) return localSettings;
 
-  const base = preferRemote 
-    ? { ...defaultDB().settings, ...localSettings, ...remoteSettings }
-    : { ...defaultDB().settings, ...remoteSettings, ...localSettings };
-
-  // When preferRemote is true (newer remote data), accept remote offline status; otherwise keep local offline status
-  const isPublicSiteOffline = preferRemote
-    ? (remoteSettings.isPublicSiteOffline !== undefined ? Boolean(remoteSettings.isPublicSiteOffline) : Boolean(localSettings.isPublicSiteOffline))
-    : (localSettings.isPublicSiteOffline !== undefined ? Boolean(localSettings.isPublicSiteOffline) : Boolean(remoteSettings.isPublicSiteOffline));
+  const defaultSettings = defaultDB().settings;
+  const primary = preferRemote ? remoteSettings : localSettings;
+  const secondary = preferRemote ? localSettings : remoteSettings;
 
   return {
-    ...base,
-    isPublicSiteOffline,
-    offlineMessage: preferRemote ? (remoteSettings.offlineMessage || localSettings.offlineMessage || base.offlineMessage) : (localSettings.offlineMessage || remoteSettings.offlineMessage || base.offlineMessage),
-    showNotice: preferRemote ? (remoteSettings.showNotice !== undefined ? remoteSettings.showNotice : localSettings.showNotice) : (localSettings.showNotice !== undefined ? localSettings.showNotice : remoteSettings.showNotice),
-    isLiveCelebrationActive: preferRemote ? (remoteSettings.isLiveCelebrationActive !== undefined ? remoteSettings.isLiveCelebrationActive : localSettings.isLiveCelebrationActive) : (localSettings.isLiveCelebrationActive !== undefined ? localSettings.isLiveCelebrationActive : remoteSettings.isLiveCelebrationActive),
+    ...defaultSettings,
+    ...secondary,
+    ...primary,
+    // Safely preserve objects and arrays
+    points: {
+      ...defaultSettings.points,
+      ...(secondary.points || {}),
+      ...(primary.points || {})
+    },
+    notices: (primary.notices && primary.notices.length > 0) 
+      ? primary.notices 
+      : (secondary.notices && secondary.notices.length > 0 ? secondary.notices : defaultSettings.notices),
+    colorTheme: primary.colorTheme || secondary.colorTheme || defaultSettings.colorTheme,
+    isPublicSiteOffline: primary.isPublicSiteOffline !== undefined ? Boolean(primary.isPublicSiteOffline) : (secondary.isPublicSiteOffline !== undefined ? Boolean(secondary.isPublicSiteOffline) : false),
+    offlineMessage: primary.offlineMessage || secondary.offlineMessage || defaultSettings.offlineMessage,
+    showNotice: primary.showNotice !== undefined ? primary.showNotice : (secondary.showNotice !== undefined ? secondary.showNotice : true),
+    isLiveCelebrationActive: primary.isLiveCelebrationActive !== undefined ? primary.isLiveCelebrationActive : (secondary.isLiveCelebrationActive !== undefined ? secondary.isLiveCelebrationActive : false),
+    showFinalWinner: primary.showFinalWinner !== undefined ? primary.showFinalWinner : (secondary.showFinalWinner !== undefined ? secondary.showFinalWinner : false),
+    googleSheetId: primary.googleSheetId || secondary.googleSheetId || '',
+    appsScriptUrl: primary.appsScriptUrl || secondary.appsScriptUrl || '',
   };
 }
 
@@ -717,40 +727,63 @@ export async function fetchFromServer(): Promise<Database | null> {
 
 export async function syncDatabase(localDb: Database): Promise<{ db: Database; updated: boolean }> {
   try {
-    const [remoteFirestore, remoteServer, remoteSheet, remoteAppsScript, remotePublicSheet] = await Promise.all([
-      fetchFromFirestore().catch(() => null),
+    const localHasData = (localDb?.programs?.length || 0) > 0 || (localDb?.participants?.length || 0) > 0 || (localDb?.results?.length || 0) > 0;
+
+    // 1. PRIMARY CLOUD SOURCE OF TRUTH: Cloud Firestore
+    const remoteFirestore = await fetchFromFirestore().catch(() => null);
+
+    if (remoteFirestore && Array.isArray(remoteFirestore.teams)) {
+      const normalizedFirestore = normalizeDB(remoteFirestore);
+      if (normalizedFirestore) {
+        const remoteHasData = (normalizedFirestore.programs?.length || 0) > 0 || (normalizedFirestore.participants?.length || 0) > 0 || (normalizedFirestore.results?.length || 0) > 0;
+        
+        // If local has data but remote is empty and not explicit reset, re-publish local to Firestore
+        if (localHasData && !remoteHasData && !normalizedFirestore.isExplicitReset) {
+          saveToFirestore(localDb).catch(() => {});
+          return { db: localDb, updated: false };
+        }
+
+        const localTime = Number(localDb.lastModified || 0);
+        const remoteTime = Number(normalizedFirestore.lastModified || 0);
+
+        if (remoteTime > localTime || (!localHasData && remoteHasData)) {
+          const merged = mergeDatabase(localDb, normalizedFirestore, true);
+          const calculated = calculatePoints(merged);
+          saveDBLocal(calculated, true);
+          return { db: calculated, updated: true };
+        } else if (localTime > remoteTime) {
+          // Local is newer, ensure Firestore is in sync
+          saveToFirestore(localDb).catch(() => {});
+          return { db: localDb, updated: false };
+        }
+
+        return { db: localDb, updated: false };
+      }
+    }
+
+    // 2. Secondary fallback only when Firestore is unavailable/offline
+    const [remoteServer, remoteAppsScript, remotePublicSheet] = await Promise.all([
       fetchFromServer().catch(() => null),
-      fetchFromCloudSheet().catch(() => null),
       fetchFromAppsScriptDirect().catch(() => null),
       fetchPublicGoogleSheetData().catch(() => null)
     ]);
 
-    const localHasData = (localDb?.programs?.length || 0) > 0 || (localDb?.participants?.length || 0) > 0 || (localDb?.results?.length || 0) > 0;
-
-    // Filter valid remotes, ignoring uninitialized or empty responses when local or firestore has data
-    const validRemotes = [remoteFirestore, remotePublicSheet, remoteAppsScript, remoteSheet, remoteServer].filter((r): r is Database => {
+    const validFallbacks = [remotePublicSheet, remoteAppsScript, remoteServer].filter((r): r is Database => {
       if (!r || !Array.isArray(r.teams)) return false;
       const remoteHasData = (r.programs?.length || 0) > 0 || (r.participants?.length || 0) > 0 || (r.results?.length || 0) > 0;
-      
-      // If local already has data and remote is empty, ignore this remote (unless it's an intentional reset)
-      if (localHasData && !remoteHasData && !r.isExplicitReset) {
-        return false;
-      }
+      if (localHasData && !remoteHasData && !r.isExplicitReset) return false;
       return true;
     });
 
-    if (validRemotes.length === 0) {
+    if (validFallbacks.length === 0) {
       return { db: localDb, updated: false };
     }
 
-    // Sort valid remotes so older remotes merge first and the newest remote wins
-    validRemotes.sort((a, b) => (a.lastModified || 0) - (b.lastModified || 0));
-
-    // Merge all valid remote sources sequentially starting with localDb
+    validFallbacks.sort((a, b) => (a.lastModified || 0) - (b.lastModified || 0));
     let accumulator = localDb || defaultDB();
     let hasRemoteUpdate = false;
 
-    for (const remote of validRemotes) {
+    for (const remote of validFallbacks) {
       if (remote) {
         const merged = mergeDatabase(accumulator, remote);
         if (JSON.stringify(merged.results) !== JSON.stringify(accumulator.results) || 
