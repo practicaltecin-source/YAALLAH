@@ -153,6 +153,7 @@ export interface Database {
   settings: Settings;
   prevRanks: Record<string, number>;
   lastModified: number;
+  isExplicitReset?: boolean;
 }
 
 export type ViewName = 'home' | 'results' | 'scoreboard' | 'programs' | 'candidateSearch' | 'categories' | 'about' | 'settings' | 'adminGate' | 'dashboard';

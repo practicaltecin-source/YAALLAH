@@ -29,7 +29,7 @@ import {
   syncDataToGoogleSheet, 
   queueAutoSyncToGoogleSheet 
 } from './googleSheets';
-import { subscribeToFirestore, resetFirestoreClean, fetchFromFirestore } from './firebase';
+import { subscribeToFirestore, resetFirestoreClean, fetchFromFirestore, saveToFirestore } from './firebase';
 import { WifiOff, Lock, ShieldAlert } from 'lucide-react';
 import Splash from './components/Splash';
 import Header from './components/Header';
@@ -169,6 +169,13 @@ export default function App() {
           const currentLocal = dbRef.current || loadDB();
           const hasLocalData = (currentLocal.programs?.length || 0) > 0 || (currentLocal.participants?.length || 0) > 0 || (currentLocal.results?.length || 0) > 0;
           const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
+          
+          if (hasLocalData && !hasRemoteData && !normalized.isExplicitReset) {
+            // Re-upload valid local data to Firestore so cloud and all other phones stay synced
+            saveToFirestore(currentLocal).catch(() => {});
+            return;
+          }
+
           const preferRemote = (!hasLocalData && hasRemoteData) || (Number(normalized.lastModified || 0) >= Number(currentLocal.lastModified || 0));
 
           const merged = mergeDatabase(currentLocal, normalized, preferRemote);
@@ -191,6 +198,13 @@ export default function App() {
           const currentLocal = dbRef.current || loadDB();
           const hasLocalData = (currentLocal.programs?.length || 0) > 0 || (currentLocal.participants?.length || 0) > 0 || (currentLocal.results?.length || 0) > 0;
           const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
+
+          if (hasLocalData && !hasRemoteData && !normalized.isExplicitReset) {
+            // Protect local data from being wiped by empty cloud snapshot and heal cloud
+            saveToFirestore(currentLocal).catch(() => {});
+            return;
+          }
+
           const preferRemote = (!hasLocalData && hasRemoteData) || (Number(normalized.lastModified || 0) >= Number(currentLocal.lastModified || 0));
 
           const merged = mergeDatabase(currentLocal, normalized, preferRemote);

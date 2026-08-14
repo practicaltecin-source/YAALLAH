@@ -314,6 +314,8 @@ export function normalizeDB(parsed: any): Database | null {
   };
 }
 
+export const BACKUP_STORAGE_KEY = 'fest_portal_db_backup_v1';
+
 export function loadDB(): Database {
   try {
     ['mrms_db_v1', 'mrms_db_v2', 'mrms_db_v3', 'mrms_db_v4', 'mrms_db_v5', 'mrms_db_v10_reset', 'mrms_db_v100_clean', 'mrms_db_v105_english_pro'].forEach(k => {
@@ -321,10 +323,31 @@ export function loadDB(): Database {
     });
 
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultDB();
-    const parsed = JSON.parse(raw);
-    const normalized = normalizeDB(parsed);
-    return normalized || defaultDB();
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const normalized = normalizeDB(parsed);
+      if (normalized) {
+        const hasData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
+        if (hasData) return normalized;
+      }
+    }
+
+    // Secondary recovery check: immutable backup key
+    const rawBackup = localStorage.getItem(BACKUP_STORAGE_KEY);
+    if (rawBackup) {
+      const parsedBackup = JSON.parse(rawBackup);
+      const normalizedBackup = normalizeDB(parsedBackup);
+      if (normalizedBackup) {
+        const hasBackupData = (normalizedBackup.programs?.length || 0) > 0 || (normalizedBackup.participants?.length || 0) > 0 || (normalizedBackup.results?.length || 0) > 0;
+        if (hasBackupData) return normalizedBackup;
+      }
+    }
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return normalizeDB(parsed) || defaultDB();
+    }
+    return defaultDB();
   } catch (e) {
     return defaultDB();
   }
@@ -336,7 +359,15 @@ export function saveDBLocal(db: Database, preserveTimestamp: boolean = false): D
     lastModified: preserveTimestamp ? (db.lastModified || Date.now()) : Math.max(Date.now(), (db.lastModified || 0) + 1)
   };
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    const serialized = JSON.stringify(updated);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    
+    // Save backup if non-empty
+    const hasData = (updated.programs?.length || 0) > 0 || (updated.participants?.length || 0) > 0 || (updated.results?.length || 0) > 0;
+    if (hasData) {
+      localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
+    }
+
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel('mrms_db_channel');
       channel.postMessage({ type: 'DB_UPDATED', lastModified: updated.lastModified });
@@ -405,39 +436,100 @@ export function mergeDatabase(localDb: Database, remoteDb: Database, forcePrefer
   if (!localDb) return remoteDb;
   if (!remoteDb) return localDb;
 
-  const hasLocalData = (localDb.programs?.length || 0) > 0 || (localDb.participants?.length || 0) > 0 || (localDb.results?.length || 0) > 0;
-  const hasRemoteData = (remoteDb.programs?.length || 0) > 0 || (remoteDb.participants?.length || 0) > 0 || (remoteDb.results?.length || 0) > 0;
+  const localHasData = (localDb.programs?.length || 0) > 0 || (localDb.participants?.length || 0) > 0 || (localDb.results?.length || 0) > 0;
+  const remoteHasData = (remoteDb.programs?.length || 0) > 0 || (remoteDb.participants?.length || 0) > 0 || (remoteDb.results?.length || 0) > 0;
 
-  // If local device has NO data (e.g. newly opened phone/browser) but remote cloud has real data, ALWAYS adopt remote!
-  if (!hasLocalData && hasRemoteData) {
+  // SAFETY 1: Never wipe existing data with an empty remote snapshot
+  if (localHasData && !remoteHasData && !remoteDb.isExplicitReset) {
+    return localDb;
+  }
+
+  // SAFETY 2: If local device is completely empty (e.g. freshly opened device/browser), adopt remote immediately
+  if (!localHasData && remoteHasData) {
     return remoteDb;
   }
 
-  if (forcePreferRemote) {
+  if (forcePreferRemote && (remoteHasData || remoteDb.isExplicitReset)) {
     return remoteDb;
   }
 
   const localTime = Number(localDb.lastModified || 0);
   const remoteTime = Number(remoteDb.lastModified || 0);
 
-  // If remote has newer changes or equal timestamp with more data
-  if (remoteTime > localTime) {
+  // If remote is explicit reset
+  if (remoteDb.isExplicitReset && remoteTime >= localTime) {
     return remoteDb;
   }
 
-  // If local has strictly newer changes and actually has data
-  if (localTime > remoteTime && hasLocalData) {
-    return localDb;
-  }
+  // If both have data, merge union of programs, participants, and results intelligently
+  // 1. Teams: Merge
+  const teamMap = new Map<string, Team>();
+  (localDb.teams || []).forEach(t => teamMap.set(t.id, t));
+  (remoteDb.teams || []).forEach(t => {
+    if (!teamMap.has(t.id)) {
+      teamMap.set(t.id, t);
+    } else {
+      const existing = teamMap.get(t.id)!;
+      teamMap.set(t.id, {
+        ...existing,
+        name: t.name || existing.name,
+        symbol: t.symbol || existing.symbol,
+        color: t.color || existing.color,
+        captain: t.captain || existing.captain,
+        boysCaptain: t.boysCaptain || existing.boysCaptain,
+        boysCaptain2: t.boysCaptain2 || existing.boysCaptain2,
+        girlsCaptain: t.girlsCaptain || existing.girlsCaptain,
+        girlsCaptain2: t.girlsCaptain2 || existing.girlsCaptain2,
+        points: (remoteTime >= localTime && t.points !== undefined) ? t.points : existing.points
+      });
+    }
+  });
 
-  const mergedSettings = mergeSettings(localDb?.settings, remoteDb?.settings, false);
+  // 2. Programs: Merge union
+  const progMap = new Map<string, Program>();
+  (localDb.programs || []).forEach(p => progMap.set(p.id, p));
+  (remoteDb.programs || []).forEach(p => {
+    if (!progMap.has(p.id)) {
+      progMap.set(p.id, p);
+    } else if (remoteTime >= localTime) {
+      progMap.set(p.id, p);
+    }
+  });
+
+  // 3. Participants: Merge union
+  const partMap = new Map<string, Participant>();
+  (localDb.participants || []).forEach(pa => partMap.set(pa.id, pa));
+  (remoteDb.participants || []).forEach(pa => {
+    if (!partMap.has(pa.id)) {
+      partMap.set(pa.id, pa);
+    } else if (remoteTime >= localTime) {
+      partMap.set(pa.id, pa);
+    }
+  });
+
+  // 4. Results: Merge union
+  const resMap = new Map<string, Result>();
+  (localDb.results || []).forEach(r => {
+    const key = `${r.programId}_${r.gender || 'All'}_${r.age || 'All'}`;
+    resMap.set(key, r);
+  });
+  (remoteDb.results || []).forEach(r => {
+    const key = `${r.programId}_${r.gender || 'All'}_${r.age || 'All'}`;
+    if (!resMap.has(key)) {
+      resMap.set(key, r);
+    } else if (remoteTime >= localTime) {
+      resMap.set(key, r);
+    }
+  });
+
+  const mergedSettings = mergeSettings(localDb?.settings, remoteDb?.settings, remoteTime >= localTime);
 
   return {
     ...localDb,
-    teams: (localDb.teams && localDb.teams.length > 0) ? localDb.teams : (remoteDb.teams || []),
-    programs: (localDb.programs && localDb.programs.length > 0) ? localDb.programs : (remoteDb.programs || []),
-    participants: (localDb.participants && localDb.participants.length > 0) ? localDb.participants : (remoteDb.participants || []),
-    results: (localDb.results && localDb.results.length > 0) ? localDb.results : (remoteDb.results || []),
+    teams: Array.from(teamMap.values()),
+    programs: Array.from(progMap.values()),
+    participants: Array.from(partMap.values()),
+    results: Array.from(resMap.values()),
     settings: mergedSettings,
     prevRanks: { ...(localDb.prevRanks || {}), ...(remoteDb.prevRanks || {}) },
     lastModified: Math.max(localTime, remoteTime)
@@ -446,7 +538,11 @@ export function mergeDatabase(localDb: Database, remoteDb: Database, forcePrefer
 
 export async function resetEntireDatabase(): Promise<Database> {
   const fresh = defaultDB();
+  fresh.isExplicitReset = true;
   fresh.lastModified = Date.now() + 2000000000;
+  try {
+    localStorage.removeItem(BACKUP_STORAGE_KEY);
+  } catch (e) {}
   saveDBLocal(fresh, true);
   await Promise.all([
     pushToServer(fresh).catch(() => {}),
@@ -629,11 +725,15 @@ export async function syncDatabase(localDb: Database): Promise<{ db: Database; u
       fetchPublicGoogleSheetData().catch(() => null)
     ]);
 
-    // Filter valid remotes, ignoring uninitialized server responses that lack results when local or firestore has data
+    const localHasData = (localDb?.programs?.length || 0) > 0 || (localDb?.participants?.length || 0) > 0 || (localDb?.results?.length || 0) > 0;
+
+    // Filter valid remotes, ignoring uninitialized or empty responses when local or firestore has data
     const validRemotes = [remoteFirestore, remotePublicSheet, remoteAppsScript, remoteSheet, remoteServer].filter((r): r is Database => {
       if (!r || !Array.isArray(r.teams)) return false;
-      // If server response has 0 results while local or firestore has results, skip server response
-      if (r === remoteServer && (r.results?.length || 0) === 0 && ((localDb?.results?.length || 0) > 0 || (remoteFirestore?.results?.length || 0) > 0)) {
+      const remoteHasData = (r.programs?.length || 0) > 0 || (r.participants?.length || 0) > 0 || (r.results?.length || 0) > 0;
+      
+      // If local already has data and remote is empty, ignore this remote (unless it's an intentional reset)
+      if (localHasData && !remoteHasData && !r.isExplicitReset) {
         return false;
       }
       return true;
