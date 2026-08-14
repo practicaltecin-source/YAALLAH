@@ -1,0 +1,89 @@
+{
+  "teams": [
+    {
+      "id": "team_a",
+      "name": "Team A",
+      "symbol": "🟢",
+      "color": "#10b981",
+      "captain": "",
+      "boysCaptain": "",
+      "boysCaptain2": "",
+      "girlsCaptain": "",
+      "girlsCaptain2": "",
+      "points": 0
+    },
+    {
+      "id": "team_b",
+      "name": "Team B",
+      "symbol": "🔵",
+      "color": "#3b82f6",
+      "captain": "",
+      "boysCaptain": "",
+      "boysCaptain2": "",
+      "girlsCaptain": "",
+      "girlsCaptain2": "",
+      "points": 0
+    },
+    {
+      "id": "team_c",
+      "name": "Team C",
+      "symbol": "🔴",
+      "color": "#ef4444",
+      "captain": "",
+      "boysCaptain": "",
+      "boysCaptain2": "",
+      "girlsCaptain": "",
+      "girlsCaptain2": "",
+      "points": 0
+    },
+    {
+      "id": "team_d",
+      "name": "Team D",
+      "symbol": "🟡",
+      "color": "#f59e0b",
+      "captain": "",
+      "boysCaptain": "",
+      "boysCaptain2": "",
+      "girlsCaptain": "",
+      "girlsCaptain2": "",
+      "points": 0
+    }
+  ],
+  "programs": [],
+  "participants": [],
+  "results": [],
+  "settings": {
+    "points": {
+      "first": 10,
+      "second": 7,
+      "third": 5,
+      "generalFirst": 15,
+      "generalSecond": 10,
+      "generalThird": 7,
+      "participation": 1,
+      "gradeA": 5,
+      "gradeB": 3,
+      "gradeC": 1
+    },
+    "adminPassword": "admin",
+    "adminPin": "1234",
+    "eventName": "ARTS FEST 2026",
+    "boardName": "LIVE SCOREBOARD",
+    "subtitle": "Live Competition Results, Scoring Points & Schedules",
+    "showFinalWinner": false,
+    "showScoreboard": true,
+    "showCandidatePoints": true,
+    "showDetailedScoreboard": true,
+    "showIndividualChampions": true,
+    "showNotice": false,
+    "noticeTitle": "Welcome",
+    "noticeText": "Welcome to Arts Fest Live Results Portal",
+    "notices": [],
+    "colorTheme": "natural",
+    "googleSheetId": "",
+    "appsScriptUrl": "",
+    "sheetWebhookUrl": ""
+  },
+  "prevRanks": {},
+  "lastModified": 1
+}
