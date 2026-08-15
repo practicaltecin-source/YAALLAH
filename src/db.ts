@@ -737,9 +737,8 @@ export async function syncDatabase(localDb: Database): Promise<{ db: Database; u
       if (normalizedFirestore) {
         const remoteHasData = (normalizedFirestore.programs?.length || 0) > 0 || (normalizedFirestore.participants?.length || 0) > 0 || (normalizedFirestore.results?.length || 0) > 0;
         
-        // If local has data but remote is empty and not explicit reset, re-publish local to Firestore
+        // If local has data but remote is empty and not explicit reset, do not overwrite local
         if (localHasData && !remoteHasData && !normalizedFirestore.isExplicitReset) {
-          saveToFirestore(localDb).catch(() => {});
           return { db: localDb, updated: false };
         }
 
@@ -751,10 +750,6 @@ export async function syncDatabase(localDb: Database): Promise<{ db: Database; u
           const calculated = calculatePoints(merged);
           saveDBLocal(calculated, true);
           return { db: calculated, updated: true };
-        } else if (localTime > remoteTime) {
-          // Local is newer, ensure Firestore is in sync
-          saveToFirestore(localDb).catch(() => {});
-          return { db: localDb, updated: false };
         }
 
         return { db: localDb, updated: false };

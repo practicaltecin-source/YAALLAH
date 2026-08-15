@@ -32,6 +32,7 @@ import {
   getCachedToken,
   googleSignOut
 } from '../googleSheets';
+import { APPS_SCRIPT_CODE_GS } from '../utils/appsScriptCode';
 
 interface SettingsProps {
   db: Database;
@@ -1846,6 +1847,48 @@ export default function Settings({
               </div>
             </div>
 
+            {/* Team Spotlight Carousel Slider Switch */}
+            <div className="p-4 bg-gradient-to-r from-amber-500/10 via-yellow-500/15 to-amber-500/10 border-2 border-amber-300/80 rounded-2xl space-y-3 shadow-sm">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="space-y-1 min-w-0 pr-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-2xl shrink-0">✨</span>
+                    <h4 className="text-xs font-extrabold text-brand-green-950 uppercase tracking-wide">
+                      Home Page Team Spotlight Slider
+                    </h4>
+                    {db.settings?.showSpotlightSlider !== false && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-600 text-white">
+                        SPOTLIGHT ON
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-brand-green-900 font-medium leading-relaxed">
+                    Shows or hides the rotating team highlight widget banner below the live scoreboard on the home page.
+                  </p>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={db.settings?.showSpotlightSlider !== false}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      const updated = {
+                        ...db,
+                        settings: {
+                          ...db.settings,
+                          showSpotlightSlider: enabled,
+                        }
+                      };
+                      onImportBackup(updated);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-6.5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+            </div>
+
             {/* Curiosity / Suspense Top 3 Teams Rotation Switch */}
             <div className="p-4 bg-gradient-to-r from-amber-500/15 via-rose-500/20 to-amber-500/15 border-2 border-amber-400/80 rounded-2xl space-y-3 shadow-sm">
               <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -3194,53 +3237,7 @@ export default function Settings({
                     <button
                       type="button"
                       onClick={() => {
-                        const code = `function doGet(e) {
-  var doc = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = doc.getSheetByName('System Backup') || doc.insertSheet('System Backup');
-  var val = sheet.getRange('A1').getValue();
-  return ContentService.createTextOutput(val || '{"status":"ok"}').setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    var rawText = e.postData.contents;
-    var data = JSON.parse(rawText);
-    var db = data.db || data;
-    var doc = SpreadsheetApp.getActiveSpreadsheet();
-
-    // 1. Save Full Database JSON Backup
-    var backupSheet = doc.getSheetByName('System Backup') || doc.insertSheet('System Backup');
-    backupSheet.getRange('A1').setValue(JSON.stringify(db));
-
-    // 2. Write Scoreboard Tab
-    if (db.teams) {
-      var scoreSheet = doc.getSheetByName('Scoreboard') || doc.insertSheet('Scoreboard');
-      scoreSheet.clear();
-      scoreSheet.appendRow(['Team ID', 'Team Name', 'Symbol', 'Total Points', 'Captain']);
-      db.teams.forEach(function(t) {
-        scoreSheet.appendRow([t.id, t.name, t.symbol, t.points || 0, t.captain || '']);
-      });
-    }
-
-    // 3. Write Results Tab
-    if (db.results) {
-      var resSheet = doc.getSheetByName('Program Results') || doc.insertSheet('Program Results');
-      resSheet.clear();
-      resSheet.appendRow(['Result ID', 'Program ID', 'Category', 'First Place', 'Second Place', 'Third Place']);
-      db.results.forEach(function(r) {
-        var f = (r.winners && r.winners.first) ? r.winners.first.join(', ') : '';
-        var s = (r.winners && r.winners.second) ? r.winners.second.join(', ') : '';
-        var t = (r.winners && r.winners.third) ? r.winners.third.join(', ') : '';
-        resSheet.appendRow([r.id, r.programId, r.category || '', f, s, t]);
-      });
-    }
-
-    return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Data synced successfully' })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-  }
-}`;
-                        navigator.clipboard.writeText(code);
+                        navigator.clipboard.writeText(APPS_SCRIPT_CODE_GS);
                         alert('✅ Google Apps Script code copied to clipboard! Paste this into Google Sheets -> Extensions -> Apps Script.');
                       }}
                       className="px-3 py-1 bg-indigo-700 hover:bg-indigo-800 text-white text-[10px] font-extrabold rounded-lg shadow-2xs transition-all cursor-pointer"
@@ -3249,55 +3246,10 @@ function doPost(e) {
                     </button>
                   </div>
                   <p className="text-[11px] text-indigo-900 leading-relaxed">
-                    Paste this script into your Google Sheet by navigating to <b>Extensions &gt; Apps Script</b>. Deploy as a <b>Web App</b> with access set to <b>"Anyone"</b>.
+                    Paste this script into your Google Sheet by navigating to <b>Extensions &gt; Apps Script</b>. Deploy as a <b>Web App</b> with <b>Execute as: Me</b> and <b>Who has access: Anyone</b>.
                   </p>
                   <pre className="p-3 bg-slate-900 text-emerald-300 font-mono text-[10px] rounded-lg overflow-x-auto max-h-52 select-all border border-slate-700">
-{`function doGet(e) {
-  var doc = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = doc.getSheetByName('System Backup') || doc.insertSheet('System Backup');
-  var val = sheet.getRange('A1').getValue();
-  return ContentService.createTextOutput(val || '{"status":"ok"}').setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    var rawText = e.postData.contents;
-    var data = JSON.parse(rawText);
-    var db = data.db || data;
-    var doc = SpreadsheetApp.getActiveSpreadsheet();
-
-    // 1. Save Full Database JSON Backup
-    var backupSheet = doc.getSheetByName('System Backup') || doc.insertSheet('System Backup');
-    backupSheet.getRange('A1').setValue(JSON.stringify(db));
-
-    // 2. Write Scoreboard Tab
-    if (db.teams) {
-      var scoreSheet = doc.getSheetByName('Scoreboard') || doc.insertSheet('Scoreboard');
-      scoreSheet.clear();
-      scoreSheet.appendRow(['Team ID', 'Team Name', 'Symbol', 'Total Points', 'Captain']);
-      db.teams.forEach(function(t) {
-        scoreSheet.appendRow([t.id, t.name, t.symbol, t.points || 0, t.captain || '']);
-      });
-    }
-
-    // 3. Write Results Tab
-    if (db.results) {
-      var resSheet = doc.getSheetByName('Program Results') || doc.insertSheet('Program Results');
-      resSheet.clear();
-      resSheet.appendRow(['Result ID', 'Program ID', 'Category', 'First Place', 'Second Place', 'Third Place']);
-      db.results.forEach(function(r) {
-        var f = (r.winners && r.winners.first) ? r.winners.first.join(', ') : '';
-        var s = (r.winners && r.winners.second) ? r.winners.second.join(', ') : '';
-        var t = (r.winners && r.winners.third) ? r.winners.third.join(', ') : '';
-        resSheet.appendRow([r.id, r.programId, r.category || '', f, s, t]);
-      });
-    }
-
-    return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Data synced successfully' })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-  }
-}`}
+{APPS_SCRIPT_CODE_GS}
                   </pre>
                 </div>
               )}

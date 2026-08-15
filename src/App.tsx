@@ -171,8 +171,6 @@ export default function App() {
           const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
           
           if (hasLocalData && !hasRemoteData && !normalized.isExplicitReset) {
-            // Re-upload valid local data to Firestore so cloud and all other phones stay synced
-            saveToFirestore(currentLocal).catch(() => {});
             return;
           }
 
@@ -200,8 +198,6 @@ export default function App() {
           const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
 
           if (hasLocalData && !hasRemoteData && !normalized.isExplicitReset) {
-            // Protect local data from being wiped by empty cloud snapshot and heal cloud
-            saveToFirestore(currentLocal).catch(() => {});
             return;
           }
 
@@ -216,8 +212,8 @@ export default function App() {
       }
     });
 
-    // Fast multi-device background sync every 4 seconds (fetches latest Google Sheet & Firestore data)
-    const pollInterval = setInterval(syncData, 4000);
+    // Multi-device background sync every 12 seconds
+    const pollInterval = setInterval(syncData, 12000);
 
     // Sync across tabs in the same browser
     let channel: any = null;

@@ -897,7 +897,7 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
       />
 
       {/* Spotlight Slider Widget */}
-      {slides.length > 0 && (
+      {slides.length > 0 && db.settings.showSpotlightSlider !== false && (
         <div className="relative overflow-hidden rounded-2xl bg-brand-panel border border-brand-line shadow-sm">
           <div className="p-4 bg-gradient-to-r from-brand-gold-400/10 to-brand-gold-500/5 border-b border-brand-line flex items-center justify-between">
             <span className="text-xs font-bold text-brand-gold-700 flex items-center gap-1">

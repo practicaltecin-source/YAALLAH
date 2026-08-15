@@ -1121,12 +1121,30 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
   const [paGender, setPaGender] = useState<'Boys' | 'Girls' | 'General'>('Boys');
   const [paProgs, setPaProgs] = useState<string[]>([]);
 
-  // Form states - Result
+  // Form states - Result Publishing (Dual Section Boys & Girls + General)
   const [resProgId, setResProgId] = useState('');
-  const [resGender, setResGender] = useState<'Boys' | 'Girls' | 'General'>('Boys');
   const [resAge, setResAge] = useState<typeof AGES[number] | 'All'>('Kids');
-  const [resTies, setResTies] = useState<Record<string, string>>({}); // Mapping participantId to placement/grade
-  const [manualRows, setManualRows] = useState<{ name: string; teamId: string; assign: string }[]>([]);
+  const [resActiveView, setResActiveView] = useState<'dual' | 'boys' | 'girls' | 'general'>('dual');
+
+  // Boys Section States
+  const [resBoysTies, setResBoysTies] = useState<Record<string, string>>({});
+  const [boysManualRows, setBoysManualRows] = useState<{ name: string; teamId: string; assign: string }[]>([]);
+  const [boysSearch, setBoysSearch] = useState('');
+
+  // Girls Section States
+  const [resGirlsTies, setResGirlsTies] = useState<Record<string, string>>({});
+  const [girlsManualRows, setGirlsManualRows] = useState<{ name: string; teamId: string; assign: string }[]>([]);
+  const [girlsSearch, setGirlsSearch] = useState('');
+
+  // General Section States
+  const [resGenTies, setResGenTies] = useState<Record<string, string>>({});
+  const [genManualRows, setGenManualRows] = useState<{ name: string; teamId: string; assign: string }[]>([]);
+  const [genSearch, setGenSearch] = useState('');
+
+  // Admin Results Tab Filters
+  const [adminResultFilterGender, setAdminResultFilterGender] = useState<'all' | 'Boys' | 'Girls' | 'General'>('all');
+  const [adminResultFilterAge, setAdminResultFilterAge] = useState<string>('all');
+  const [adminResultSearch, setAdminResultSearch] = useState<string>('');
 
   const [deleteArmId, setDeleteArmId] = useState<string | null>(null);
 
@@ -2006,156 +2024,344 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
     setShowMatrixModal(false);
   };
 
-  // ==================== RESULTS ====================
+  // ==================== RESULTS (DUAL BOYS & GIRLS PUBLISHING) ====================
+  const loadResultStateForProgramAndAge = (progId: string, age: string) => {
+    // Find existing results for Boys, Girls, General
+    const boysRes = db.results.find(r => r.programId === progId && r.gender === 'Boys' && (r.age === age || age === 'All' || r.age === 'All'));
+    const girlsRes = db.results.find(r => r.programId === progId && r.gender === 'Girls' && (r.age === age || age === 'All' || r.age === 'All'));
+    const genRes = db.results.find(r => r.programId === progId && r.gender === 'General' && (r.age === age || age === 'All' || r.age === 'All'));
+
+    // Load Boys ties
+    const boysTies: Record<string, string> = {};
+    const boysManual: { name: string; teamId: string; assign: string }[] = [];
+    if (boysRes) {
+      const boysCandidates = db.participants.filter(p => (p.gender === 'Boys' || !p.gender) && (p.age === age || age === 'All') && p.programIds.includes(progId));
+      boysCandidates.forEach(cand => {
+        let val = '';
+        ['first', 'second', 'third'].forEach(pos => {
+          if ((boysRes.winners as any)[pos]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = pos;
+        });
+        ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(g => {
+          if ((boysRes.grades as any)[g]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = g;
+        });
+        if (val) boysTies[cand.id] = val;
+      });
+
+      ['first', 'second', 'third', 'gradeA', 'gradeB', 'gradeC', 'participation'].forEach(key => {
+        const list = ['first', 'second', 'third'].includes(key) ? (boysRes.winners as any)[key] : (boysRes.grades as any)[key];
+        (list || []).forEach((e: any) => {
+          const isReg = boysCandidates.some(c => c.name === e.name && c.teamId === e.teamId);
+          if (!isReg) boysManual.push({ name: e.name, teamId: e.teamId || '', assign: key });
+        });
+      });
+    }
+    setResBoysTies(boysTies);
+    setBoysManualRows(boysManual);
+
+    // Load Girls ties
+    const girlsTies: Record<string, string> = {};
+    const girlsManual: { name: string; teamId: string; assign: string }[] = [];
+    if (girlsRes) {
+      const girlsCandidates = db.participants.filter(p => p.gender === 'Girls' && (p.age === age || age === 'All') && p.programIds.includes(progId));
+      girlsCandidates.forEach(cand => {
+        let val = '';
+        ['first', 'second', 'third'].forEach(pos => {
+          if ((girlsRes.winners as any)[pos]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = pos;
+        });
+        ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(g => {
+          if ((girlsRes.grades as any)[g]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = g;
+        });
+        if (val) girlsTies[cand.id] = val;
+      });
+
+      ['first', 'second', 'third', 'gradeA', 'gradeB', 'gradeC', 'participation'].forEach(key => {
+        const list = ['first', 'second', 'third'].includes(key) ? (girlsRes.winners as any)[key] : (girlsRes.grades as any)[key];
+        (list || []).forEach((e: any) => {
+          const isReg = girlsCandidates.some(c => c.name === e.name && c.teamId === e.teamId);
+          if (!isReg) girlsManual.push({ name: e.name, teamId: e.teamId || '', assign: key });
+        });
+      });
+    }
+    setResGirlsTies(girlsTies);
+    setGirlsManualRows(girlsManual);
+
+    // Load General ties
+    const genTies: Record<string, string> = {};
+    const genManual: { name: string; teamId: string; assign: string }[] = [];
+    if (genRes) {
+      const genCandidates = db.participants.filter(p => (p.age === age || age === 'All') && p.programIds.includes(progId));
+      genCandidates.forEach(cand => {
+        let val = '';
+        ['first', 'second', 'third'].forEach(pos => {
+          if ((genRes.winners as any)[pos]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = pos;
+        });
+        ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(g => {
+          if ((genRes.grades as any)[g]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = g;
+        });
+        if (val) genTies[cand.id] = val;
+      });
+
+      ['first', 'second', 'third', 'gradeA', 'gradeB', 'gradeC', 'participation'].forEach(key => {
+        const list = ['first', 'second', 'third'].includes(key) ? (genRes.winners as any)[key] : (genRes.grades as any)[key];
+        (list || []).forEach((e: any) => {
+          const isReg = genCandidates.some(c => c.name === e.name && c.teamId === e.teamId);
+          if (!isReg) genManual.push({ name: e.name, teamId: e.teamId || '', assign: key });
+        });
+      });
+    }
+    setResGenTies(genTies);
+    setGenManualRows(genManual);
+  };
+
   const handleOpenResult = (id?: string) => {
     if (id) {
       const r = db.results.find(x => x.id === id);
       if (r) {
         setResProgId(r.programId);
-        setResGender(r.gender);
         setResAge(r.age as any);
-        
-        // Assemble current points mappings
-        const tiesMap: Record<string, string> = {};
-        const candidates = db.participants.filter(p => p.gender === r.gender && (p.age === r.age || r.age === 'All') && p.programIds.includes(r.programId));
-        
-        candidates.forEach(cand => {
-          let assignedValue = '';
-          ['first', 'second', 'third'].forEach(pos => {
-            if ((r.winners as any)[pos]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) {
-              assignedValue = pos;
-            }
-          });
-          ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(g => {
-            if ((r.grades as any)[g]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) {
-              assignedValue = g;
-            }
-          });
-          if (assignedValue) tiesMap[cand.id] = assignedValue;
-        });
+        if (r.gender === 'Boys') setResActiveView('boys');
+        else if (r.gender === 'Girls') setResActiveView('girls');
+        else if (r.gender === 'General') setResActiveView('general');
+        else setResActiveView('dual');
 
-        // Assemble manual inputs if any
-        const loadedManualRows: typeof manualRows = [];
-        const keys = ['first', 'second', 'third', 'gradeA', 'gradeB', 'gradeC', 'participation'];
-        keys.forEach(key => {
-          const list = ['first', 'second', 'third'].includes(key) ? (r.winners as any)[key] : (r.grades as any)[key];
-          (list || []).forEach((e: any) => {
-            const isRegistered = candidates.some(c => c.name === e.name && c.teamId === e.teamId);
-            if (!isRegistered) {
-              loadedManualRows.push({ name: e.name, teamId: e.teamId || '', assign: key });
-            }
-          });
-        });
-
-        setResTies(tiesMap);
-        setManualRows(loadedManualRows);
+        loadResultStateForProgramAndAge(r.programId, r.age);
         setEditingId(id);
       }
     } else {
       setResProgId('');
-      setResGender('Boys');
       setResAge('Kids');
-      setResTies({});
-      setManualRows([]);
+      setResActiveView('dual');
+      setResBoysTies({});
+      setBoysManualRows([]);
+      setResGirlsTies({});
+      setGirlsManualRows([]);
+      setResGenTies({});
+      setGenManualRows([]);
+      setEditingId(null);
     }
     setModalType('result');
-  };
-
-  const handleResultSegmentChange = (gender: 'Boys' | 'Girls' | 'General', age: string) => {
-    setResGender(gender);
-    setResAge(age as any);
-    if (!resProgId) return;
-
-    // Search for existing result for this exact program + gender + age combination
-    const existing = db.results.find(r => r.programId === resProgId && r.gender === gender && (r.age === age || age === 'All' || r.age === 'All'));
-    if (existing) {
-      handleOpenResult(existing.id);
-    } else {
-      setEditingId(null);
-      setResTies({});
-      setManualRows([]);
-    }
   };
 
   const handleResultProgChange = (pid: string) => {
     setResProgId(pid);
     if (!pid) {
+      setResBoysTies({});
+      setBoysManualRows([]);
+      setResGirlsTies({});
+      setGirlsManualRows([]);
+      setResGenTies({});
+      setGenManualRows([]);
       setEditingId(null);
-      setResTies({});
-      setManualRows([]);
       return;
     }
     const prog = db.programs.find(p => p.id === pid);
-    const defaultGender = prog?.categories[0]?.gender || 'Boys';
-    const defaultAge = prog?.categories[0]?.age || 'Kids';
+    const defaultAge = prog?.categories?.[0]?.age || 'Kids';
+    setResAge(defaultAge as any);
 
-    setResGender(defaultGender);
-    setResAge(defaultAge);
+    // Set appropriate active view based on program categories
+    const hasBoys = prog?.categories.some(c => c.gender === 'Boys') ?? true;
+    const hasGirls = prog?.categories.some(c => c.gender === 'Girls') ?? true;
+    const hasGen = prog?.categories.some(c => c.gender === 'General') ?? false;
 
-    const existingResult = db.results.find(r => r.programId === pid && r.gender === defaultGender);
-    if (existingResult) {
-      handleOpenResult(existingResult.id);
+    if (hasGen && !hasBoys && !hasGirls) {
+      setResActiveView('general');
+    } else if (hasBoys && hasGirls) {
+      setResActiveView('dual');
+    } else if (hasBoys) {
+      setResActiveView('boys');
+    } else if (hasGirls) {
+      setResActiveView('girls');
     } else {
-      setEditingId(null);
-      setResTies({});
-      setManualRows([]);
+      setResActiveView('dual');
+    }
+
+    loadResultStateForProgramAndAge(pid, defaultAge);
+  };
+
+  const handleResultAgeChange = (age: string) => {
+    setResAge(age as any);
+    if (resProgId) {
+      loadResultStateForProgramAndAge(resProgId, age);
     }
   };
 
   const handleSaveResult = () => {
-    if (!resProgId) return;
+    if (!resProgId) {
+      alert('Please select a competition program to publish results.');
+      return;
+    }
+
     let updatedResults = [...db.results];
+    const prog = db.programs.find(p => p.id === resProgId);
 
-    const winners: Result['winners'] = { first: [], second: [], third: [] };
-    const grades: Result['grades'] = { gradeA: [], gradeB: [], gradeC: [], participation: [] };
+    // ==================== PROCESS BOYS RESULTS ====================
+    const boysWinners: Result['winners'] = { first: [], second: [], third: [] };
+    const boysGrades: Result['grades'] = { gradeA: [], gradeB: [], gradeC: [], participation: [] };
 
-    // Register assigned registered candidates
-    const candidates = db.participants.filter(p => {
+    const boysCandidates = db.participants.filter(p => {
       if (!p.programIds.includes(resProgId)) return false;
-      if (resGender === 'General') return true;
-      const genderMatch = p.gender === resGender || (!p.gender && resGender === 'Boys');
+      const genderMatch = p.gender === 'Boys' || !p.gender;
       const ageMatch = (resAge as string) === 'All' || p.age === resAge;
       return genderMatch && ageMatch;
     });
-    candidates.forEach(p => {
-      const value = resTies[p.id];
-      if (!value) return;
 
+    boysCandidates.forEach(p => {
+      const val = resBoysTies[p.id];
+      if (!val) return;
       const entry: CandidateResultEntry = { name: p.name, teamId: p.teamId };
-      if (['first', 'second', 'third'].includes(value)) {
-        (winners as any)[value].push(entry);
+      if (['first', 'second', 'third'].includes(val)) {
+        (boysWinners as any)[val].push(entry);
       } else {
-        (grades as any)[value].push(entry);
+        (boysGrades as any)[val].push(entry);
       }
     });
 
-    // Manual Entries
-    manualRows.forEach(row => {
+    boysManualRows.forEach(row => {
       if (!row.name.trim() || !row.assign) return;
       const entry: CandidateResultEntry = { name: row.name.trim(), teamId: row.teamId || null };
       if (['first', 'second', 'third'].includes(row.assign)) {
-        (winners as any)[row.assign].push(entry);
+        (boysWinners as any)[row.assign].push(entry);
       } else {
-        (grades as any)[row.assign].push(entry);
+        (boysGrades as any)[row.assign].push(entry);
       }
     });
 
-    const data = {
-      programId: resProgId,
-      gender: resGender,
-      age: resAge,
-      winners,
-      grades,
-      datetime: editingId ? (db.results.find(x => x.id === editingId)?.datetime || new Date().toISOString()) : new Date().toISOString()
-    };
+    const hasBoysData = boysWinners.first.length > 0 || boysWinners.second.length > 0 || boysWinners.third.length > 0 ||
+      Object.values(boysGrades).some(arr => arr.length > 0);
 
-    if (editingId) {
-      updatedResults = updatedResults.map(r => r.id === editingId ? { ...r, ...data } : r);
-    } else {
-      updatedResults.push({
-        id: generateId(),
-        ...data
-      });
+    const existingBoysRes = db.results.find(r => r.programId === resProgId && r.gender === 'Boys' && (r.age === resAge || resAge === 'All' || r.age === 'All'));
+
+    if (hasBoysData) {
+      const boysData: Omit<Result, 'id'> = {
+        programId: resProgId,
+        gender: 'Boys',
+        age: resAge,
+        winners: boysWinners,
+        grades: boysGrades,
+        datetime: existingBoysRes?.datetime || new Date().toISOString()
+      };
+      if (existingBoysRes) {
+        updatedResults = updatedResults.map(r => r.id === existingBoysRes.id ? { ...r, ...boysData } : r);
+      } else {
+        updatedResults.push({ id: generateId(), ...boysData });
+      }
+    } else if (existingBoysRes && resActiveView === 'boys') {
+      // If user deliberately emptied boys while in boys view, remove or update
+      updatedResults = updatedResults.filter(r => r.id !== existingBoysRes.id);
+    }
+
+    // ==================== PROCESS GIRLS RESULTS ====================
+    const girlsWinners: Result['winners'] = { first: [], second: [], third: [] };
+    const girlsGrades: Result['grades'] = { gradeA: [], gradeB: [], gradeC: [], participation: [] };
+
+    const girlsCandidates = db.participants.filter(p => {
+      if (!p.programIds.includes(resProgId)) return false;
+      const genderMatch = p.gender === 'Girls';
+      const ageMatch = (resAge as string) === 'All' || p.age === resAge;
+      return genderMatch && ageMatch;
+    });
+
+    girlsCandidates.forEach(p => {
+      const val = resGirlsTies[p.id];
+      if (!val) return;
+      const entry: CandidateResultEntry = { name: p.name, teamId: p.teamId };
+      if (['first', 'second', 'third'].includes(val)) {
+        (girlsWinners as any)[val].push(entry);
+      } else {
+        (girlsGrades as any)[val].push(entry);
+      }
+    });
+
+    girlsManualRows.forEach(row => {
+      if (!row.name.trim() || !row.assign) return;
+      const entry: CandidateResultEntry = { name: row.name.trim(), teamId: row.teamId || null };
+      if (['first', 'second', 'third'].includes(row.assign)) {
+        (girlsWinners as any)[row.assign].push(entry);
+      } else {
+        (girlsGrades as any)[row.assign].push(entry);
+      }
+    });
+
+    const hasGirlsData = girlsWinners.first.length > 0 || girlsWinners.second.length > 0 || girlsWinners.third.length > 0 ||
+      Object.values(girlsGrades).some(arr => arr.length > 0);
+
+    const existingGirlsRes = db.results.find(r => r.programId === resProgId && r.gender === 'Girls' && (r.age === resAge || resAge === 'All' || r.age === 'All'));
+
+    if (hasGirlsData) {
+      const girlsData: Omit<Result, 'id'> = {
+        programId: resProgId,
+        gender: 'Girls',
+        age: resAge,
+        winners: girlsWinners,
+        grades: girlsGrades,
+        datetime: existingGirlsRes?.datetime || new Date().toISOString()
+      };
+      if (existingGirlsRes) {
+        updatedResults = updatedResults.map(r => r.id === existingGirlsRes.id ? { ...r, ...girlsData } : r);
+      } else {
+        updatedResults.push({ id: generateId(), ...girlsData });
+      }
+    } else if (existingGirlsRes && resActiveView === 'girls') {
+      updatedResults = updatedResults.filter(r => r.id !== existingGirlsRes.id);
+    }
+
+    // ==================== PROCESS GENERAL RESULTS ====================
+    const genWinners: Result['winners'] = { first: [], second: [], third: [] };
+    const genGrades: Result['grades'] = { gradeA: [], gradeB: [], gradeC: [], participation: [] };
+
+    const genCandidates = db.participants.filter(p => {
+      if (!p.programIds.includes(resProgId)) return false;
+      const ageMatch = (resAge as string) === 'All' || p.age === resAge;
+      return ageMatch;
+    });
+
+    genCandidates.forEach(p => {
+      const val = resGenTies[p.id];
+      if (!val) return;
+      const entry: CandidateResultEntry = { name: p.name, teamId: p.teamId };
+      if (['first', 'second', 'third'].includes(val)) {
+        (genWinners as any)[val].push(entry);
+      } else {
+        (genGrades as any)[val].push(entry);
+      }
+    });
+
+    genManualRows.forEach(row => {
+      if (!row.name.trim() || !row.assign) return;
+      const entry: CandidateResultEntry = { name: row.name.trim(), teamId: row.teamId || null };
+      if (['first', 'second', 'third'].includes(row.assign)) {
+        (genWinners as any)[row.assign].push(entry);
+      } else {
+        (genGrades as any)[row.assign].push(entry);
+      }
+    });
+
+    const hasGenData = genWinners.first.length > 0 || genWinners.second.length > 0 || genWinners.third.length > 0 ||
+      Object.values(genGrades).some(arr => arr.length > 0);
+
+    const existingGenRes = db.results.find(r => r.programId === resProgId && r.gender === 'General' && (r.age === resAge || resAge === 'All' || r.age === 'All'));
+
+    if (hasGenData) {
+      const genData: Omit<Result, 'id'> = {
+        programId: resProgId,
+        gender: 'General',
+        age: resAge,
+        winners: genWinners,
+        grades: genGrades,
+        datetime: existingGenRes?.datetime || new Date().toISOString()
+      };
+      if (existingGenRes) {
+        updatedResults = updatedResults.map(r => r.id === existingGenRes.id ? { ...r, ...genData } : r);
+      } else {
+        updatedResults.push({ id: generateId(), ...genData });
+      }
+    } else if (existingGenRes && resActiveView === 'general') {
+      updatedResults = updatedResults.filter(r => r.id !== existingGenRes.id);
+    }
+
+    if (!hasBoysData && !hasGirlsData && !hasGenData) {
+      alert('Please assign at least 1 winner or grade before publishing.');
+      return;
     }
 
     onUpdateDb({ ...db, results: updatedResults });
@@ -4842,47 +5048,234 @@ function handleRequest(e) {
 
         {/* Results List */}
         {activeTab === 'results' && (
-          db.results.length === 0 ? (
-            <div className="p-10 bg-brand-panel border border-brand-line rounded-2xl text-center text-brand-ink-soft text-xs">
-              No results entries recorded. Create one.
-            </div>
-          ) : (
-            db.results.map(r => {
-              const prog = db.programs.find(p => p.id === r.programId);
-              return (
-                <div key={r.id} className="flex items-center justify-between p-3.5 bg-brand-panel border border-brand-line rounded-xl shadow-sm">
-                  <div className="min-w-0 flex-1 pr-4">
-                    <b className="text-xs md:text-sm text-brand-ink font-semibold truncate block">
-                      {prog ? `${prog.code} — ${prog.name}` : 'Unknown Competition'}
-                    </b>
-                    <small className="block text-[10px] text-brand-ink-soft mt-0.5 truncate leading-none">
-                      {r.gender} Section &bull; {r.age} Group &bull; Entered: {new Date(r.datetime).toLocaleDateString()}
-                    </small>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button onClick={() => handleOpenResult(r.id)} className="p-1.5 bg-brand-bg rounded-lg hover:bg-brand-line/50 transition-colors text-brand-green-800 cursor-pointer" title="Edit Result">
-                      <Edit className="w-3.5 h-3.5" />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        if (deleteArmId === r.id) {
-                          handleDeleteResult(r.id);
-                          setDeleteArmId(null);
-                        } else {
-                          armDelete(r.id);
-                        }
-                      }} 
-                      className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                        deleteArmId === r.id ? 'bg-red-500 text-white animate-pulse' : 'bg-brand-bg text-rose-600 hover:bg-rose-50'
-                      }`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+          <div className="space-y-4">
+            {/* Filter and Search Bar */}
+            <div className="p-4 bg-brand-panel border border-brand-line rounded-2xl shadow-sm space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-brand-green-950 flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-brand-gold-600" />
+                    Published Competition Results ({db.results.length})
+                  </h3>
+                  <p className="text-[11px] text-brand-ink-soft mt-0.5">
+                    View, search, edit, or publish results separately for Boys and Girls sections.
+                  </p>
                 </div>
-              );
-            })
-          )
+                <button
+                  type="button"
+                  onClick={() => handleOpenResult()}
+                  className="px-4 py-2 bg-brand-green-800 hover:bg-brand-green-900 text-white font-bold text-xs rounded-xl shadow cursor-pointer flex items-center gap-2 transition-all shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>➕ Publish New Result</span>
+                </button>
+              </div>
+
+              {/* Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-brand-line/60">
+                <input
+                  type="text"
+                  placeholder="🔍 Search by program name, code, candidate, or team..."
+                  value={adminResultSearch}
+                  onChange={(e) => setAdminResultSearch(e.target.value)}
+                  className="px-3 py-2 bg-brand-bg border border-brand-line rounded-xl text-xs font-medium text-brand-ink focus:outline-none focus:border-brand-gold-500"
+                />
+
+                <select
+                  value={adminResultFilterGender}
+                  onChange={(e) => setAdminResultFilterGender(e.target.value as any)}
+                  className="px-3 py-2 bg-brand-bg border border-brand-line rounded-xl text-xs font-bold text-brand-ink focus:outline-none"
+                >
+                  <option value="all">👥 All Sections (Boys &amp; Girls &amp; General)</option>
+                  <option value="Boys">👦 Boys Section Only</option>
+                  <option value="Girls">👧 Girls Section Only</option>
+                  <option value="General">🌐 General Section Only</option>
+                </select>
+
+                <select
+                  value={adminResultFilterAge}
+                  onChange={(e) => setAdminResultFilterAge(e.target.value)}
+                  className="px-3 py-2 bg-brand-bg border border-brand-line rounded-xl text-xs font-bold text-brand-ink focus:outline-none"
+                >
+                  <option value="all">🏷️ All Age Categories</option>
+                  {AGES.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {db.results.length === 0 ? (
+              <div className="p-10 bg-brand-panel border border-brand-line rounded-2xl text-center text-brand-ink-soft text-xs space-y-2">
+                <p>No results entries recorded yet.</p>
+                <button
+                  type="button"
+                  onClick={() => handleOpenResult()}
+                  className="px-3.5 py-1.5 bg-brand-green-100 text-brand-green-900 font-bold text-xs rounded-xl hover:bg-brand-green-200 transition-colors"
+                >
+                  + Publish First Result
+                </button>
+              </div>
+            ) : (
+              (() => {
+                const filtered = db.results.filter(r => {
+                  if (adminResultFilterGender !== 'all' && r.gender !== adminResultFilterGender) return false;
+                  if (adminResultFilterAge !== 'all' && r.age !== adminResultFilterAge && r.age !== 'All') return false;
+
+                  if (adminResultSearch.trim()) {
+                    const q = adminResultSearch.toLowerCase().trim();
+                    const prog = db.programs.find(p => p.id === r.programId);
+                    const progMatch = (prog?.name || '').toLowerCase().includes(q) || (prog?.code || '').toLowerCase().includes(q);
+                    
+                    // Check if any winner matches
+                    const allWinners = [
+                      ...(r.winners.first || []),
+                      ...(r.winners.second || []),
+                      ...(r.winners.third || [])
+                    ];
+                    const winnerMatch = allWinners.some(w => {
+                      const nameMatch = w.name.toLowerCase().includes(q);
+                      const team = db.teams.find(t => t.id === w.teamId);
+                      const teamMatch = (team?.name || '').toLowerCase().includes(q);
+                      return nameMatch || teamMatch;
+                    });
+
+                    if (!progMatch && !winnerMatch) return false;
+                  }
+
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="p-8 bg-brand-panel border border-brand-line rounded-2xl text-center text-brand-ink-soft text-xs">
+                      No results matching current filters.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {filtered.map(r => {
+                      const prog = db.programs.find(p => p.id === r.programId);
+                      const isBoys = r.gender === 'Boys';
+                      const isGirls = r.gender === 'Girls';
+
+                      return (
+                        <div
+                          key={r.id}
+                          className={`p-4 bg-brand-panel border rounded-2xl shadow-sm space-y-3 transition-all hover:shadow-md ${
+                            isBoys
+                              ? 'border-sky-300/80 bg-gradient-to-br from-white via-sky-50/20 to-sky-50/40'
+                              : isGirls
+                              ? 'border-pink-300/80 bg-gradient-to-br from-white via-pink-50/20 to-pink-50/40'
+                              : 'border-emerald-300/80 bg-gradient-to-br from-white via-emerald-50/20 to-emerald-50/40'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                  isBoys
+                                    ? 'bg-sky-100 text-sky-900 border border-sky-300'
+                                    : isGirls
+                                    ? 'bg-pink-100 text-pink-900 border border-pink-300'
+                                    : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                }`}>
+                                  {isBoys ? '👦 BOYS' : isGirls ? '👧 GIRLS' : '🌐 GENERAL'}
+                                </span>
+                                <span className="bg-brand-bg text-brand-ink-soft px-2 py-0.5 rounded-md text-[10px] font-bold border border-brand-line">
+                                  {r.age} Group
+                                </span>
+                              </div>
+                              <h4 className="text-sm font-bold text-brand-ink mt-1.5 leading-snug">
+                                {prog ? `${prog.code} — ${prog.name}` : 'Competition'}
+                              </h4>
+                              <small className="text-[10px] text-brand-ink-soft block mt-0.5">
+                                Published: {new Date(r.datetime).toLocaleDateString()} at {new Date(r.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </small>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => handleOpenResult(r.id)}
+                                className="p-2 bg-brand-bg hover:bg-brand-line/60 rounded-xl transition-colors text-brand-green-800 cursor-pointer"
+                                title="Edit Result"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (deleteArmId === r.id) {
+                                    handleDeleteResult(r.id);
+                                    setDeleteArmId(null);
+                                  } else {
+                                    armDelete(r.id);
+                                  }
+                                }}
+                                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                                  deleteArmId === r.id ? 'bg-red-500 text-white animate-pulse' : 'bg-brand-bg text-rose-600 hover:bg-rose-50'
+                                }`}
+                                title="Delete Result"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Winners Preview */}
+                          <div className="pt-2 border-t border-brand-line/60 space-y-1.5">
+                            {/* 1st */}
+                            {r.winners.first?.length > 0 && (
+                              <div className="flex items-center gap-2 text-xs bg-amber-50/80 p-1.5 rounded-xl border border-amber-200">
+                                <span className="text-sm shrink-0">🥇</span>
+                                <span className="font-bold text-amber-950 truncate flex-1">
+                                  {r.winners.first.map(w => w.name).join(', ')}
+                                </span>
+                                {r.winners.first[0]?.teamId && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-200/80 text-amber-950 rounded shrink-0">
+                                    {db.teams.find(t => t.id === r.winners.first[0].teamId)?.name}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* 2nd */}
+                            {r.winners.second?.length > 0 && (
+                              <div className="flex items-center gap-2 text-xs bg-slate-100/90 p-1.5 rounded-xl border border-slate-300">
+                                <span className="text-sm shrink-0">🥈</span>
+                                <span className="font-bold text-slate-900 truncate flex-1">
+                                  {r.winners.second.map(w => w.name).join(', ')}
+                                </span>
+                                {r.winners.second[0]?.teamId && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-200 text-slate-900 rounded shrink-0">
+                                    {db.teams.find(t => t.id === r.winners.second[0].teamId)?.name}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* 3rd */}
+                            {r.winners.third?.length > 0 && (
+                              <div className="flex items-center gap-2 text-xs bg-amber-50/50 p-1.5 rounded-xl border border-amber-200/70">
+                                <span className="text-sm shrink-0">🥉</span>
+                                <span className="font-bold text-amber-900 truncate flex-1">
+                                  {r.winners.third.map(w => w.name).join(', ')}
+                                </span>
+                                {r.winners.third[0]?.teamId && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded shrink-0">
+                                    {db.teams.find(t => t.id === r.winners.third[0].teamId)?.name}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()
+            )}
+          </div>
         )}
 
         {/* Schedule, Time & Stage Manager */}
@@ -6326,261 +6719,696 @@ function handleRequest(e) {
               </div>
             )}
 
-            {/* RESULTS FORM */}
+            {/* RESULTS FORM (DUAL SECTION BOYS & GIRLS PUBLISHING) */}
             {modalType === 'result' && (
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-brand-ink-soft">Select Program</label>
-                    {resProgId && db.results.some(r => r.programId === resProgId && r.gender === resGender) && (
-                      <span className="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
-                        ✅ {resGender} RESULT PUBLISHED
-                      </span>
-                    )}
-                  </div>
-                  <select value={resProgId} onChange={(e) => handleResultProgChange(e.target.value)} className="w-full px-3.5 py-2.5 bg-brand-bg border border-brand-line rounded-xl text-xs font-medium">
-                    <option value="">— Select Competition —</option>
-                    {db.programs.map(p => {
-                      const boysDeclared = db.results.some(r => r.programId === p.id && r.gender === 'Boys');
-                      const girlsDeclared = db.results.some(r => r.programId === p.id && r.gender === 'Girls');
-                      const genDeclared = db.results.some(r => r.programId === p.id && r.gender === 'General');
-
-                      let tag = '';
-                      if (boysDeclared && girlsDeclared) tag = ' ✅ [BOYS & GIRLS PUBLISHED]';
-                      else if (boysDeclared) tag = ' 👦 [BOYS PUBLISHED]';
-                      else if (girlsDeclared) tag = ' 👧 [GIRLS PUBLISHED]';
-                      else if (genDeclared) tag = ' 🌐 [PUBLISHED]';
-
-                      return (
-                        <option key={p.id} value={p.id}>
-                          {p.code} — {p.name} {tag}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {resProgId && db.results.some(r => r.programId === resProgId && r.gender === resGender && (r.age === resAge || resAge === 'All')) && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-900 text-xs space-y-1">
-                    <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                      <span>⚠️</span> {resGender} Section Result Already Published!
+              <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+                {/* Program & Age Selector Header */}
+                <div className="p-3.5 bg-brand-bg rounded-2xl border border-brand-line/80 space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-brand-green-950">Select Competition Program</label>
+                      {resProgId && (
+                        <div className="flex items-center gap-1 text-[10px] font-bold">
+                          {db.results.some(r => r.programId === resProgId && r.gender === 'Boys') && (
+                            <span className="px-1.5 py-0.5 bg-sky-100 text-sky-900 border border-sky-300 rounded">👦 Boys Published</span>
+                          )}
+                          {db.results.some(r => r.programId === resProgId && r.gender === 'Girls') && (
+                            <span className="px-1.5 py-0.5 bg-pink-100 text-pink-900 border border-pink-300 rounded">👧 Girls Published</span>
+                          )}
+                          {db.results.some(r => r.programId === resProgId && r.gender === 'General') && (
+                            <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded">🌐 Gen Published</span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[11px] text-amber-800 leading-tight">
-                      Editing existing results for {resGender} section ({resAge}). Click Save to update.
-                    </p>
-                  </div>
-                )}
+                    <select
+                      value={resProgId}
+                      onChange={(e) => handleResultProgChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-brand-line rounded-xl text-xs font-bold text-brand-ink focus:outline-none focus:border-brand-gold-500"
+                    >
+                      <option value="">— Select Competition —</option>
+                      {db.programs.map(p => {
+                        const boysDeclared = db.results.some(r => r.programId === p.id && r.gender === 'Boys');
+                        const girlsDeclared = db.results.some(r => r.programId === p.id && r.gender === 'Girls');
+                        const genDeclared = db.results.some(r => r.programId === p.id && r.gender === 'General');
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-brand-ink-soft">Section Segment</label>
-                    <select value={resGender} onChange={(e) => handleResultSegmentChange(e.target.value as any, resAge)} className="w-full px-3.5 py-2.5 bg-brand-bg border border-brand-line rounded-xl text-xs font-bold">
-                      <option value="Boys">👦 Boys Section (ആൺ)</option>
-                      <option value="Girls">👧 Girls Section (പെൺ)</option>
-                      <option value="General">🌐 General Section</option>
+                        let tag = '';
+                        if (boysDeclared && girlsDeclared) tag = ' ✅ [BOYS & GIRLS PUBLISHED]';
+                        else if (boysDeclared) tag = ' 👦 [BOYS PUBLISHED]';
+                        else if (girlsDeclared) tag = ' 👧 [GIRLS PUBLISHED]';
+                        else if (genDeclared) tag = ' 🌐 [PUBLISHED]';
+
+                        return (
+                          <option key={p.id} value={p.id}>
+                            {p.code} — {p.name} {tag}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-brand-ink-soft">Age Group</label>
-                    <select value={resAge} onChange={(e) => handleResultSegmentChange(resGender, e.target.value)} className="w-full px-3.5 py-2.5 bg-brand-bg border border-brand-line rounded-xl text-xs font-bold">
-                      {resGender === 'General' ? <option value="All">All Categories</option> : AGES.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                  </div>
-                </div>
 
-                {/* Score mapping checks */}
-                <div className="border-t border-brand-line pt-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <h4 className="text-xs font-bold text-brand-ink">
-                      Registered Candidate Standings ({resGender} Section - {resAge})
-                    </h4>
-                    {resProgId && (
-                      <span className="text-[10px] font-medium text-brand-ink-soft">
-                        Select placements / grades for candidates below
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Quick Search in Candidate List */}
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="🔍 Search candidate by name, chest #, or team..."
-                      value={resultCandidateSearch}
-                      onChange={(e) => setResultCandidateSearch(e.target.value)}
-                      className="w-full pl-3 pr-8 py-1.5 bg-brand-bg border border-brand-line rounded-xl text-xs font-medium text-brand-ink focus:outline-none focus:border-brand-gold-500 shadow-2xs"
-                    />
-                    {resultCandidateSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setResultCandidateSearch('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  {(() => {
-                    const allMapped = db.participants.filter(p => {
-                      if (!p.programIds.includes(resProgId)) return false;
-                      if (resGender === 'General') return true;
-                      const genderMatch = p.gender === resGender || (!p.gender && resGender === 'Boys');
-                      const ageMatch = (resAge as string) === 'All' || p.age === resAge;
-                      return genderMatch && ageMatch;
-                    });
-
-                    const candidates = allMapped.filter(p => {
-                      if (!resultCandidateSearch.trim()) return true;
-                      const q = resultCandidateSearch.toLowerCase().trim();
-                      const matchName = p.name.toLowerCase().includes(q);
-                      const matchNum = (p.number || '').toLowerCase().includes(q);
-                      const teamName = db.teams.find(t => t.id === p.teamId)?.name || '';
-                      const matchTeam = teamName.toLowerCase().includes(q);
-                      return matchName || matchNum || matchTeam;
-                    });
-
-                    if (allMapped.length === 0) {
-                      return (
-                        <div className="space-y-3">
-                          <p className="text-[11px] text-brand-ink-soft leading-tight">
-                            No registered candidates were mapped to this program in the directory for <b>{resGender} ({resAge})</b>. You can enter arbitrary winner names below manually.
+                  {resProgId && (
+                    <div className="space-y-2.5 pt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <label className="text-xs font-black text-brand-green-950 flex items-center gap-1.5">
+                            <span>🏷️</span> Age Category for Results (വിഭാഗം)
+                          </label>
+                          <p className="text-[10px] text-brand-ink-soft">
+                            Click any category below to enter/edit winners for that age group.
                           </p>
-
-                          <div className="space-y-2">
-                            {manualRows.map((row, idx) => (
-                              <div key={idx} className="flex gap-2 items-center bg-brand-bg p-2 rounded-xl border border-brand-line/50">
-                                <input
-                                  type="text"
-                                  placeholder="Name"
-                                  value={row.name}
-                                  onChange={(e) => {
-                                    const next = [...manualRows];
-                                    next[idx].name = e.target.value;
-                                    setManualRows(next);
-                                  }}
-                                  className="flex-1 min-w-0 px-2 py-1 bg-white border border-brand-line rounded text-xs focus:outline-none"
-                                />
-                                <select
-                                  value={row.teamId}
-                                  onChange={(e) => {
-                                    const next = [...manualRows];
-                                    next[idx].teamId = e.target.value;
-                                    setManualRows(next);
-                                  }}
-                                  className="w-24 px-1 py-1 bg-white border border-brand-line rounded text-xs focus:outline-none"
-                                >
-                                  <option value="">Team</option>
-                                  {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
-                                <select
-                                  value={row.assign}
-                                  onChange={(e) => {
-                                    const next = [...manualRows];
-                                    next[idx].assign = e.target.value;
-                                    setManualRows(next);
-                                  }}
-                                  className="w-24 px-1 py-1 bg-white border border-brand-line rounded text-xs focus:outline-none"
-                                >
-                                  <option value="">Placement</option>
-                                  <option value="first">🥇 1st</option>
-                                  <option value="second">🥈 2nd</option>
-                                  <option value="third">🥉 3rd</option>
-                                  <option value="gradeA">🅰️ Grade A</option>
-                                  <option value="gradeB">🅱️ Grade B</option>
-                                  <option value="gradeC">🅲 Grade C</option>
-                                  <option value="participation">🎗️ Part.</option>
-                                </select>
-                                <button
-                                  type="button"
-                                  onClick={() => setManualRows(manualRows.filter((_, rIdx) => rIdx !== idx))}
-                                  className="text-rose-600 hover:bg-rose-50 p-1 rounded-md"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => setManualRows([...manualRows, { name: '', teamId: '', assign: '' }])}
-                              className="px-3 py-1.5 bg-brand-green-100 text-brand-green-800 text-[10px] font-bold rounded-lg cursor-pointer"
-                            >
-                              + Add Winner Manually
-                            </button>
-                          </div>
                         </div>
-                      );
-                    }
 
-                    if (candidates.length === 0 && resultCandidateSearch.trim()) {
-                      return (
-                        <div className="p-4 bg-brand-bg rounded-xl border border-brand-line text-center text-xs text-brand-ink-soft">
-                          No candidates found matching "{resultCandidateSearch}".
+                        {/* View Switcher */}
+                        <div className="flex bg-white p-1 rounded-xl border border-brand-line gap-1 self-start sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => setResActiveView('dual')}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
+                              resActiveView === 'dual' ? 'bg-brand-green-800 text-white' : 'text-brand-ink hover:bg-brand-bg'
+                            }`}
+                          >
+                            👥 Dual (Boys &amp; Girls)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResActiveView('boys')}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
+                              resActiveView === 'boys' ? 'bg-sky-700 text-white' : 'text-sky-950 hover:bg-sky-50'
+                            }`}
+                          >
+                            👦 Boys Only
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResActiveView('girls')}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
+                              resActiveView === 'girls' ? 'bg-pink-700 text-white' : 'text-pink-950 hover:bg-pink-50'
+                            }`}
+                          >
+                            👧 Girls Only
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResActiveView('general')}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
+                              resActiveView === 'general' ? 'bg-emerald-700 text-white' : 'text-emerald-950 hover:bg-emerald-50'
+                            }`}
+                          >
+                            🌐 Gen
+                          </button>
                         </div>
-                      );
-                    }
+                      </div>
 
-                    return (
-                      <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                        {candidates.map(p => {
-                          const tName = db.teams.find(t => t.id === p.teamId)?.name || 'No Team';
-                          const assignedVal = resTies[p.id] || '';
+                      {/* Category Selection Tabs Bar */}
+                      <div className="flex flex-wrap gap-1.5 p-2 bg-brand-bg/80 border border-brand-line rounded-2xl">
+                        {AGES.map(a => {
+                          const isCurrent = resAge === a;
+                          const boysPublished = db.results.some(r => r.programId === resProgId && r.age === a && r.gender === 'Boys');
+                          const girlsPublished = db.results.some(r => r.programId === resProgId && r.age === a && r.gender === 'Girls');
+                          const prog = db.programs.find(p => p.id === resProgId);
+                          const isProgCategory = prog?.categories.some(c => c.age === a);
+
                           return (
-                            <div 
-                              key={p.id} 
-                              className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
-                                assignedVal === 'first' 
-                                  ? 'bg-amber-50 border-amber-300 shadow-2xs' 
-                                  : assignedVal === 'second' 
-                                  ? 'bg-slate-100 border-slate-300 shadow-2xs'
-                                  : assignedVal === 'third'
-                                  ? 'bg-amber-50/50 border-amber-200 shadow-2xs'
-                                  : assignedVal
-                                  ? 'bg-emerald-50/70 border-emerald-300 shadow-2xs'
-                                  : 'bg-brand-bg border-brand-line/50'
+                            <button
+                              key={a}
+                              type="button"
+                              onClick={() => handleResultAgeChange(a)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                                isCurrent
+                                  ? 'bg-brand-green-800 text-brand-gold-300 ring-2 ring-brand-gold-400'
+                                  : 'bg-white text-brand-ink hover:bg-brand-bg border border-brand-line'
                               }`}
                             >
-                              <div className="min-w-0 pr-2">
-                                <b className="text-brand-ink block font-semibold truncate">{p.name}</b>
-                                <small className="text-brand-ink-soft block mt-0.5">
-                                  {tName} &bull; <span className="font-mono font-bold text-brand-gold-700">#{p.number}</span> {p.cls ? `&bull; Class ${p.cls}` : ''}
-                                </small>
-                              </div>
-                              <select
-                                value={assignedVal}
-                                onChange={(e) => setResTies({ ...resTies, [p.id]: e.target.value })}
-                                className={`px-2.5 py-1.5 border rounded-lg text-xs font-semibold shrink-0 cursor-pointer ${
-                                  assignedVal === 'first'
-                                    ? 'bg-amber-100 border-amber-400 text-amber-950 font-bold'
-                                    : assignedVal === 'second'
-                                    ? 'bg-slate-200 border-slate-400 text-slate-900 font-bold'
-                                    : assignedVal === 'third'
-                                    ? 'bg-amber-200/80 border-amber-400 text-amber-950 font-bold'
-                                    : assignedVal
-                                    ? 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold'
-                                    : 'bg-white border-brand-line text-brand-ink'
-                                }`}
-                              >
-                                <option value="">— No Award —</option>
-                                <option value="first">🥇 1st Place</option>
-                                <option value="second">🥈 2nd Place</option>
-                                <option value="third">🥉 3rd Place</option>
-                                <option value="gradeA">🅰️ Grade A</option>
-                                <option value="gradeB">🅱️ Grade B</option>
-                                <option value="gradeC">🅲 Grade C</option>
-                                <option value="participation">🎗️ Participation</option>
-                              </select>
-                            </div>
+                              <span>{AGE_ICONS[a] || '🏷️'}</span>
+                              <span>{a}</span>
+                              {boysPublished && girlsPublished ? (
+                                <span className="text-[9px] bg-emerald-600 text-white px-1.5 py-0.2 rounded-full font-bold">✅ B+G</span>
+                              ) : boysPublished ? (
+                                <span className="text-[9px] bg-sky-600 text-white px-1.5 py-0.2 rounded-full font-bold">👦 Boys</span>
+                              ) : girlsPublished ? (
+                                <span className="text-[9px] bg-pink-600 text-white px-1.5 py-0.2 rounded-full font-bold">👧 Girls</span>
+                              ) : isProgCategory ? (
+                                <span className="text-[9px] text-brand-gold-700 font-bold">★</span>
+                              ) : null}
+                            </button>
                           );
                         })}
+                        <button
+                          type="button"
+                          onClick={() => handleResultAgeChange('All')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            resAge === 'All'
+                              ? 'bg-brand-green-800 text-brand-gold-300 ring-2 ring-brand-gold-400'
+                              : 'bg-white text-brand-ink hover:bg-brand-bg border border-brand-line'
+                          }`}
+                        >
+                          <span>🌐</span>
+                          <span>All / General</span>
+                        </button>
                       </div>
-                    );
-                  })()}
+                    </div>
+                  )}
                 </div>
 
-                <button onClick={handleSaveResult} className="w-full py-3 bg-brand-green-800 text-white font-bold text-xs rounded-xl shadow cursor-pointer">
-                  Save Result Entries
-                </button>
+                {!resProgId ? (
+                  <div className="p-8 text-center bg-brand-bg rounded-2xl border border-brand-line text-xs text-brand-ink-soft">
+                    Please select a competition program above to publish winners and grades.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* DUAL OR MULTI-SECTION PANELS */}
+                    <div className={`grid gap-4 ${resActiveView === 'dual' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+                      {/* ================= BOYS SECTION ================= */}
+                      {(resActiveView === 'dual' || resActiveView === 'boys') && (
+                        <div className="p-4 bg-sky-50/40 border-2 border-sky-300/80 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 bg-sky-100 text-sky-800 rounded-lg text-sm">👦</span>
+                              <div>
+                                <h4 className="text-xs font-bold text-sky-950">Boys Section Results</h4>
+                                <p className="text-[10px] text-sky-800">Assign winners &amp; grades for Boys</p>
+                              </div>
+                            </div>
+                            {db.results.some(r => r.programId === resProgId && r.gender === 'Boys') && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 bg-sky-200/80 text-sky-900 rounded-md">
+                                ✅ Published
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick Filter */}
+                          <input
+                            type="text"
+                            placeholder="🔍 Filter boys by name, chest #, team..."
+                            value={boysSearch}
+                            onChange={(e) => setBoysSearch(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-sky-200 rounded-xl text-xs font-medium text-brand-ink focus:outline-none focus:border-sky-400"
+                          />
+
+                          {/* Candidate List */}
+                          {(() => {
+                            const boysCandidates = db.participants.filter(p => {
+                              if (!p.programIds.includes(resProgId)) return false;
+                              const genderMatch = p.gender === 'Boys' || !p.gender;
+                              const ageMatch = (resAge as string) === 'All' || p.age === resAge;
+                              return genderMatch && ageMatch;
+                            });
+
+                            const filtered = boysCandidates.filter(p => {
+                              if (!boysSearch.trim()) return true;
+                              const q = boysSearch.toLowerCase().trim();
+                              const nameMatch = p.name.toLowerCase().includes(q);
+                              const numMatch = (p.number || '').toLowerCase().includes(q);
+                              const team = db.teams.find(t => t.id === p.teamId)?.name || '';
+                              return nameMatch || numMatch || team.toLowerCase().includes(q);
+                            });
+
+                            return (
+                              <div className="space-y-2">
+                                {filtered.length === 0 ? (
+                                  <div className="p-3 bg-white/80 rounded-xl border border-sky-200 text-center text-xs text-sky-900/70">
+                                    {boysCandidates.length === 0
+                                      ? 'No registered boys candidates found for this program.'
+                                      : 'No candidates match search filter.'}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                    {filtered.map(p => {
+                                      const teamName = db.teams.find(t => t.id === p.teamId)?.name || 'No Team';
+                                      const val = resBoysTies[p.id] || '';
+                                      return (
+                                        <div
+                                          key={p.id}
+                                          className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
+                                            val === 'first'
+                                              ? 'bg-amber-100 border-amber-300 font-bold'
+                                              : val === 'second'
+                                              ? 'bg-slate-200 border-slate-300 font-bold'
+                                              : val === 'third'
+                                              ? 'bg-amber-100/70 border-amber-200 font-bold'
+                                              : val
+                                              ? 'bg-emerald-100 border-emerald-300 font-bold'
+                                              : 'bg-white border-sky-200'
+                                          }`}
+                                        >
+                                          <div className="min-w-0 pr-2">
+                                            <b className="text-brand-ink block truncate">{p.name}</b>
+                                            <small className="text-brand-ink-soft block text-[10px]">
+                                              {teamName} &bull; <span className="font-mono font-bold text-sky-800">#{p.number}</span>
+                                            </small>
+                                          </div>
+                                          <select
+                                            value={val}
+                                            onChange={(e) => setResBoysTies({ ...resBoysTies, [p.id]: e.target.value })}
+                                            className="px-2 py-1 bg-white border border-sky-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
+                                          >
+                                            <option value="">— Award —</option>
+                                            <option value="first">🥇 1st Place</option>
+                                            <option value="second">🥈 2nd Place</option>
+                                            <option value="third">🥉 3rd Place</option>
+                                            <option value="gradeA">🅰️ Grade A</option>
+                                            <option value="gradeB">🅱️ Grade B</option>
+                                            <option value="gradeC">🅲 Grade C</option>
+                                            <option value="participation">🎗️ Part.</option>
+                                          </select>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {/* Manual rows for Boys */}
+                                <div className="space-y-1.5 pt-2 border-t border-sky-200/80">
+                                  <div className="flex items-center justify-between text-[11px] font-bold text-sky-950">
+                                    <span>Manual / External Winners (Boys)</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setBoysManualRows([...boysManualRows, { name: '', teamId: '', assign: '' }])}
+                                      className="px-2 py-0.5 bg-sky-200/70 hover:bg-sky-300 text-sky-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
+                                    >
+                                      + Add Entry
+                                    </button>
+                                  </div>
+                                  {boysManualRows.map((row, idx) => (
+                                    <div key={idx} className="flex gap-1.5 items-center bg-white p-1.5 rounded-xl border border-sky-200">
+                                      <input
+                                        type="text"
+                                        placeholder="Name"
+                                        value={row.name}
+                                        onChange={(e) => {
+                                          const next = [...boysManualRows];
+                                          next[idx].name = e.target.value;
+                                          setBoysManualRows(next);
+                                        }}
+                                        className="flex-1 min-w-0 px-2 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs"
+                                      />
+                                      <select
+                                        value={row.teamId}
+                                        onChange={(e) => {
+                                          const next = [...boysManualRows];
+                                          next[idx].teamId = e.target.value;
+                                          setBoysManualRows(next);
+                                        }}
+                                        className="w-24 px-1 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs"
+                                      >
+                                        <option value="">Team</option>
+                                        {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                      </select>
+                                      <select
+                                        value={row.assign}
+                                        onChange={(e) => {
+                                          const next = [...boysManualRows];
+                                          next[idx].assign = e.target.value;
+                                          setBoysManualRows(next);
+                                        }}
+                                        className="w-24 px-1 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs font-semibold"
+                                      >
+                                        <option value="">Place</option>
+                                        <option value="first">🥇 1st</option>
+                                        <option value="second">🥈 2nd</option>
+                                        <option value="third">🥉 3rd</option>
+                                        <option value="gradeA">🅰️ A</option>
+                                        <option value="gradeB">🅱️ B</option>
+                                        <option value="gradeC">🅲 C</option>
+                                        <option value="participation">🎗️ Part.</option>
+                                      </select>
+                                      <button
+                                        type="button"
+                                        onClick={() => setBoysManualRows(boysManualRows.filter((_, rIdx) => rIdx !== idx))}
+                                        className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* ================= GIRLS SECTION ================= */}
+                      {(resActiveView === 'dual' || resActiveView === 'girls') && (
+                        <div className="p-4 bg-pink-50/40 border-2 border-pink-300/80 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 bg-pink-100 text-pink-800 rounded-lg text-sm">👧</span>
+                              <div>
+                                <h4 className="text-xs font-bold text-pink-950">Girls Section Results</h4>
+                                <p className="text-[10px] text-pink-800">Assign winners &amp; grades for Girls</p>
+                              </div>
+                            </div>
+                            {db.results.some(r => r.programId === resProgId && r.gender === 'Girls') && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 bg-pink-200/80 text-pink-900 rounded-md">
+                                ✅ Published
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick Filter */}
+                          <input
+                            type="text"
+                            placeholder="🔍 Filter girls by name, chest #, team..."
+                            value={girlsSearch}
+                            onChange={(e) => setGirlsSearch(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-pink-200 rounded-xl text-xs font-medium text-brand-ink focus:outline-none focus:border-pink-400"
+                          />
+
+                          {/* Candidate List */}
+                          {(() => {
+                            const girlsCandidates = db.participants.filter(p => {
+                              if (!p.programIds.includes(resProgId)) return false;
+                              const genderMatch = p.gender === 'Girls';
+                              const ageMatch = (resAge as string) === 'All' || p.age === resAge;
+                              return genderMatch && ageMatch;
+                            });
+
+                            const filtered = girlsCandidates.filter(p => {
+                              if (!girlsSearch.trim()) return true;
+                              const q = girlsSearch.toLowerCase().trim();
+                              const nameMatch = p.name.toLowerCase().includes(q);
+                              const numMatch = (p.number || '').toLowerCase().includes(q);
+                              const team = db.teams.find(t => t.id === p.teamId)?.name || '';
+                              return nameMatch || numMatch || team.toLowerCase().includes(q);
+                            });
+
+                            return (
+                              <div className="space-y-2">
+                                {filtered.length === 0 ? (
+                                  <div className="p-3 bg-white/80 rounded-xl border border-pink-200 text-center text-xs text-pink-900/70">
+                                    {girlsCandidates.length === 0
+                                      ? 'No registered girls candidates found for this program.'
+                                      : 'No candidates match search filter.'}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                    {filtered.map(p => {
+                                      const teamName = db.teams.find(t => t.id === p.teamId)?.name || 'No Team';
+                                      const val = resGirlsTies[p.id] || '';
+                                      return (
+                                        <div
+                                          key={p.id}
+                                          className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
+                                            val === 'first'
+                                              ? 'bg-amber-100 border-amber-300 font-bold'
+                                              : val === 'second'
+                                              ? 'bg-slate-200 border-slate-300 font-bold'
+                                              : val === 'third'
+                                              ? 'bg-amber-100/70 border-amber-200 font-bold'
+                                              : val
+                                              ? 'bg-emerald-100 border-emerald-300 font-bold'
+                                              : 'bg-white border-pink-200'
+                                          }`}
+                                        >
+                                          <div className="min-w-0 pr-2">
+                                            <b className="text-brand-ink block truncate">{p.name}</b>
+                                            <small className="text-brand-ink-soft block text-[10px]">
+                                              {teamName} &bull; <span className="font-mono font-bold text-pink-800">#{p.number}</span>
+                                            </small>
+                                          </div>
+                                          <select
+                                            value={val}
+                                            onChange={(e) => setResGirlsTies({ ...resGirlsTies, [p.id]: e.target.value })}
+                                            className="px-2 py-1 bg-white border border-pink-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
+                                          >
+                                            <option value="">— Award —</option>
+                                            <option value="first">🥇 1st Place</option>
+                                            <option value="second">🥈 2nd Place</option>
+                                            <option value="third">🥉 3rd Place</option>
+                                            <option value="gradeA">🅰️ Grade A</option>
+                                            <option value="gradeB">🅱️ Grade B</option>
+                                            <option value="gradeC">🅲 Grade C</option>
+                                            <option value="participation">🎗️ Part.</option>
+                                          </select>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {/* Manual rows for Girls */}
+                                <div className="space-y-1.5 pt-2 border-t border-pink-200/80">
+                                  <div className="flex items-center justify-between text-[11px] font-bold text-pink-950">
+                                    <span>Manual / External Winners (Girls)</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setGirlsManualRows([...girlsManualRows, { name: '', teamId: '', assign: '' }])}
+                                      className="px-2 py-0.5 bg-pink-200/70 hover:bg-pink-300 text-pink-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
+                                    >
+                                      + Add Entry
+                                    </button>
+                                  </div>
+                                  {girlsManualRows.map((row, idx) => (
+                                    <div key={idx} className="flex gap-1.5 items-center bg-white p-1.5 rounded-xl border border-pink-200">
+                                      <input
+                                        type="text"
+                                        placeholder="Name"
+                                        value={row.name}
+                                        onChange={(e) => {
+                                          const next = [...girlsManualRows];
+                                          next[idx].name = e.target.value;
+                                          setGirlsManualRows(next);
+                                        }}
+                                        className="flex-1 min-w-0 px-2 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs"
+                                      />
+                                      <select
+                                        value={row.teamId}
+                                        onChange={(e) => {
+                                          const next = [...girlsManualRows];
+                                          next[idx].teamId = e.target.value;
+                                          setGirlsManualRows(next);
+                                        }}
+                                        className="w-24 px-1 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs"
+                                      >
+                                        <option value="">Team</option>
+                                        {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                      </select>
+                                      <select
+                                        value={row.assign}
+                                        onChange={(e) => {
+                                          const next = [...girlsManualRows];
+                                          next[idx].assign = e.target.value;
+                                          setGirlsManualRows(next);
+                                        }}
+                                        className="w-24 px-1 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs font-semibold"
+                                      >
+                                        <option value="">Place</option>
+                                        <option value="first">🥇 1st</option>
+                                        <option value="second">🥈 2nd</option>
+                                        <option value="third">🥉 3rd</option>
+                                        <option value="gradeA">🅰️ A</option>
+                                        <option value="gradeB">🅱️ B</option>
+                                        <option value="gradeC">🅲 C</option>
+                                        <option value="participation">🎗️ Part.</option>
+                                      </select>
+                                      <button
+                                        type="button"
+                                        onClick={() => setGirlsManualRows(girlsManualRows.filter((_, rIdx) => rIdx !== idx))}
+                                        className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* ================= GENERAL SECTION ================= */}
+                      {resActiveView === 'general' && (
+                        <div className="p-4 bg-emerald-50/40 border-2 border-emerald-300/80 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg text-sm">🌐</span>
+                              <div>
+                                <h4 className="text-xs font-bold text-emerald-950">General Section Results</h4>
+                                <p className="text-[10px] text-emerald-800">Assign winners &amp; grades for General Competition</p>
+                              </div>
+                            </div>
+                            {db.results.some(r => r.programId === resProgId && r.gender === 'General') && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-200/80 text-emerald-900 rounded-md">
+                                ✅ Published
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick Filter */}
+                          <input
+                            type="text"
+                            placeholder="🔍 Filter candidates by name, chest #, team..."
+                            value={genSearch}
+                            onChange={(e) => setGenSearch(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-emerald-200 rounded-xl text-xs font-medium text-brand-ink focus:outline-none focus:border-emerald-400"
+                          />
+
+                          {/* Candidate List */}
+                          {(() => {
+                            const genCandidates = db.participants.filter(p => {
+                              if (!p.programIds.includes(resProgId)) return false;
+                              const ageMatch = (resAge as string) === 'All' || p.age === resAge;
+                              return ageMatch;
+                            });
+
+                            const filtered = genCandidates.filter(p => {
+                              if (!genSearch.trim()) return true;
+                              const q = genSearch.toLowerCase().trim();
+                              const nameMatch = p.name.toLowerCase().includes(q);
+                              const numMatch = (p.number || '').toLowerCase().includes(q);
+                              const team = db.teams.find(t => t.id === p.teamId)?.name || '';
+                              return nameMatch || numMatch || team.toLowerCase().includes(q);
+                            });
+
+                            return (
+                              <div className="space-y-2">
+                                {filtered.length === 0 ? (
+                                  <div className="p-3 bg-white/80 rounded-xl border border-emerald-200 text-center text-xs text-emerald-900/70">
+                                    {genCandidates.length === 0
+                                      ? 'No registered candidates found for this program.'
+                                      : 'No candidates match search filter.'}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                    {filtered.map(p => {
+                                      const teamName = db.teams.find(t => t.id === p.teamId)?.name || 'No Team';
+                                      const val = resGenTies[p.id] || '';
+                                      return (
+                                        <div
+                                          key={p.id}
+                                          className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
+                                            val === 'first'
+                                              ? 'bg-amber-100 border-amber-300 font-bold'
+                                              : val === 'second'
+                                              ? 'bg-slate-200 border-slate-300 font-bold'
+                                              : val === 'third'
+                                              ? 'bg-amber-100/70 border-amber-200 font-bold'
+                                              : val
+                                              ? 'bg-emerald-100 border-emerald-300 font-bold'
+                                              : 'bg-white border-emerald-200'
+                                          }`}
+                                        >
+                                          <div className="min-w-0 pr-2">
+                                            <b className="text-brand-ink block truncate">{p.name}</b>
+                                            <small className="text-brand-ink-soft block text-[10px]">
+                                              {teamName} &bull; <span className="font-mono font-bold text-emerald-800">#{p.number}</span>
+                                            </small>
+                                          </div>
+                                          <select
+                                            value={val}
+                                            onChange={(e) => setResGenTies({ ...resGenTies, [p.id]: e.target.value })}
+                                            className="px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
+                                          >
+                                            <option value="">— Award —</option>
+                                            <option value="first">🥇 1st Place</option>
+                                            <option value="second">🥈 2nd Place</option>
+                                            <option value="third">🥉 3rd Place</option>
+                                            <option value="gradeA">🅰️ Grade A</option>
+                                            <option value="gradeB">🅱️ Grade B</option>
+                                            <option value="gradeC">🅲 Grade C</option>
+                                            <option value="participation">🎗️ Part.</option>
+                                          </select>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {/* Manual rows for General */}
+                                <div className="space-y-1.5 pt-2 border-t border-emerald-200/80">
+                                  <div className="flex items-center justify-between text-[11px] font-bold text-emerald-950">
+                                    <span>Manual / External Winners (General)</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setGenManualRows([...genManualRows, { name: '', teamId: '', assign: '' }])}
+                                      className="px-2 py-0.5 bg-emerald-200/70 hover:bg-emerald-300 text-emerald-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
+                                    >
+                                      + Add Entry
+                                    </button>
+                                  </div>
+                                  {genManualRows.map((row, idx) => (
+                                    <div key={idx} className="flex gap-1.5 items-center bg-white p-1.5 rounded-xl border border-emerald-200">
+                                      <input
+                                        type="text"
+                                        placeholder="Name"
+                                        value={row.name}
+                                        onChange={(e) => {
+                                          const next = [...genManualRows];
+                                          next[idx].name = e.target.value;
+                                          setGenManualRows(next);
+                                        }}
+                                        className="flex-1 min-w-0 px-2 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs"
+                                      />
+                                      <select
+                                        value={row.teamId}
+                                        onChange={(e) => {
+                                          const next = [...genManualRows];
+                                          next[idx].teamId = e.target.value;
+                                          setGenManualRows(next);
+                                        }}
+                                        className="w-24 px-1 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs"
+                                      >
+                                        <option value="">Team</option>
+                                        {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                      </select>
+                                      <select
+                                        value={row.assign}
+                                        onChange={(e) => {
+                                          const next = [...genManualRows];
+                                          next[idx].assign = e.target.value;
+                                          setGenManualRows(next);
+                                        }}
+                                        className="w-24 px-1 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs font-semibold"
+                                      >
+                                        <option value="">Place</option>
+                                        <option value="first">🥇 1st</option>
+                                        <option value="second">🥈 2nd</option>
+                                        <option value="third">🥉 3rd</option>
+                                        <option value="gradeA">🅰️ A</option>
+                                        <option value="gradeB">🅱️ B</option>
+                                        <option value="gradeC">🅲 C</option>
+                                        <option value="participation">🎗️ Part.</option>
+                                      </select>
+                                      <button
+                                        type="button"
+                                        onClick={() => setGenManualRows(genManualRows.filter((_, rIdx) => rIdx !== idx))}
+                                        className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="pt-3 border-t border-brand-line flex gap-2">
+                      <button
+                        type="button"
+                        onClick={closeModal}
+                        className="w-1/3 py-3 border border-brand-line text-brand-ink font-bold text-xs rounded-xl hover:bg-brand-bg transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveResult}
+                        className="w-2/3 py-3 bg-brand-green-800 hover:bg-brand-green-900 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>🏆</span>
+                        <span>Save &amp; Publish Results</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

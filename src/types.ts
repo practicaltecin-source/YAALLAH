@@ -119,6 +119,8 @@ export interface Settings {
   showAlwaysTeamBanner?: boolean;
   showTeamPointsInBanner?: boolean;
   showTeamAnalyticsGraph?: boolean;
+  showLeadingTeamPopup?: boolean;
+  showSpotlightSlider?: boolean;
   suspenseSwapMode?: boolean;
   isPublicSiteOffline?: boolean;
   offlineMessage?: string;

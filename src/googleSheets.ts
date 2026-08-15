@@ -264,32 +264,40 @@ export function buildSheetsData(db: Database) {
     ...db.teams.map(t => [t.id || '', t.name || '', t.captain || '-', t.points || 0])
   ];
 
-  // Tab 2: Clean Winners List
+  // Tab 2: Clean Winners List (Separated by Gender & Category)
   const winnersListRows: Array<Array<string | number>> = [
-    ['STUDENT NAME', 'PROGRAM NAME', 'POSITION', 'TEAM NAME']
+    ['STUDENT NAME', 'PROGRAM NAME', 'GENDER SECTION', 'AGE CATEGORY', 'POSITION', 'TEAM NAME', 'POINTS']
   ];
 
   db.results.forEach(r => {
     const prog = db.programs.find(p => p.id === r.programId);
     const progTitle = prog ? (prog.code ? `${prog.code} - ${prog.name}` : prog.name) : 'Program';
+    const genderSec = r.gender || 'Boys';
+    const ageCat = r.age || 'General';
+    const isGen = Boolean(genderSec === 'General' || ageCat === 'General' || ageCat === 'All' || prog?.group);
+    const ptsConfig = db.settings?.points || { first: 10, second: 7, third: 5, generalFirst: 15, generalSecond: 10, generalThird: 7 };
+
     const w = r.winners || { first: [], second: [], third: [] };
 
     (w.first || []).forEach(item => {
       const name = item.name || 'Unknown';
       const team = item.teamId ? (teamNameMap.get(item.teamId) || item.teamId) : '-';
-      winnersListRows.push([name, progTitle, 'First', team]);
+      const pts = isGen ? (ptsConfig.generalFirst ?? ptsConfig.first) : ptsConfig.first;
+      winnersListRows.push([name, progTitle, genderSec, ageCat, '1st Place (First)', team, pts]);
     });
 
     (w.second || []).forEach(item => {
       const name = item.name || 'Unknown';
       const team = item.teamId ? (teamNameMap.get(item.teamId) || item.teamId) : '-';
-      winnersListRows.push([name, progTitle, 'Second', team]);
+      const pts = isGen ? (ptsConfig.generalSecond ?? ptsConfig.second) : ptsConfig.second;
+      winnersListRows.push([name, progTitle, genderSec, ageCat, '2nd Place (Second)', team, pts]);
     });
 
     (w.third || []).forEach(item => {
       const name = item.name || 'Unknown';
       const team = item.teamId ? (teamNameMap.get(item.teamId) || item.teamId) : '-';
-      winnersListRows.push([name, progTitle, 'Third', team]);
+      const pts = isGen ? (ptsConfig.generalThird ?? ptsConfig.third) : ptsConfig.third;
+      winnersListRows.push([name, progTitle, genderSec, ageCat, '3rd Place (Third)', team, pts]);
     });
   });
 
@@ -317,21 +325,32 @@ export function buildSheetsData(db: Database) {
     })
   ];
 
-  // Tab 4: Program Results Overview
+  // Tab 4: Program Results Overview (Segregated by Gender & Category)
   const programOverviewRows: Array<Array<string | number>> = [
-    ['PROGRAM CODE', 'PROGRAM NAME', '1ST PLACE', '2ND PLACE', '3RD PLACE'],
+    ['PROGRAM CODE', 'PROGRAM NAME', 'GENDER SECTION', 'AGE CATEGORY', '1ST PLACE', '2ND PLACE', '3RD PLACE', 'PUBLISHED AT'],
     ...db.results.map(r => {
       const prog = db.programs.find(p => p.id === r.programId);
       const progCode = prog?.code || '-';
       const progTitle = prog?.name || 'Program';
       const w = r.winners || { first: [], second: [], third: [] };
 
+      const formatWinnersWithTeam = (entries: any[]) => {
+        if (!entries || !entries.length) return '-';
+        return entries.map(item => {
+          const tName = item.teamId ? teamNameMap.get(item.teamId) : null;
+          return tName ? `${item.name || 'Unknown'} (${tName})` : (item.name || 'Unknown');
+        }).join(', ');
+      };
+
       return [
         progCode,
         progTitle,
-        getWinnerNamesOnly(w.first),
-        getWinnerNamesOnly(w.second),
-        getWinnerNamesOnly(w.third)
+        r.gender || 'Boys',
+        r.age || 'General',
+        formatWinnersWithTeam(w.first),
+        formatWinnersWithTeam(w.second),
+        formatWinnersWithTeam(w.third),
+        r.datetime || new Date().toISOString()
       ];
     })
   ];
@@ -429,30 +448,19 @@ export async function syncDataToGoogleSheet(db: Database, rawSpreadsheetId: stri
     throw new Error('Google Sign-In required. Please click "Sign In with Google" first.');
   }
 
+  // Safety check: Prevent overwriting spreadsheet with empty data
+  const teamsCount = db.teams?.length || 0;
+  const progsCount = db.programs?.length || 0;
+  const partsCount = db.participants?.length || 0;
+  const resultsCount = db.results?.length || 0;
+
+  if (teamsCount === 0 && progsCount === 0 && partsCount === 0 && resultsCount === 0 && !db.isExplicitReset) {
+    console.warn('Sync aborted: Safeguard prevented pushing empty database to Google Sheets.');
+    return false;
+  }
+
   await ensureSheetsExist(spreadsheetId, token);
   const sheetsData = buildSheetsData(db);
-
-  const clearRanges = [
-    "'Scoreboard'!A1:Z1000",
-    "'Winners List'!A1:Z5000",
-    "'Programs List'!A1:Z2000",
-    "'Program Results'!A1:Z2000",
-    "'Participants'!A1:Z10000",
-    "'System Backup'!A1:Z1000",
-  ];
-
-  try {
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchClear`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ranges: clearRanges })
-    });
-  } catch (clearErr) {
-    console.warn('Batch clear warning:', clearErr);
-  }
 
   const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, {
     method: 'POST',
