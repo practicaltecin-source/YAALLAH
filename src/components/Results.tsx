@@ -64,11 +64,18 @@ export default function Results({ db }: ResultsProps) {
 
         const checkEntries = (arr: any[]) => 
           arr.some(e => {
+            if (!e) return false;
             if (e.name && e.name.toLowerCase().includes(term)) return true;
             if (e.teamId) {
               if (e.teamId.toLowerCase().includes(term)) return true;
               const team = db.teams.find(t => t.id === e.teamId);
-              if (team && team.name.toLowerCase().includes(term)) return true;
+              if (team && (team.name.toLowerCase().includes(term) || team.symbol.toLowerCase().includes(term))) return true;
+            }
+            // Check participant by name or team to find their chest number & class
+            const part = db.participants.find(p => p.name === e.name && (!e.teamId || p.teamId === e.teamId));
+            if (part) {
+              if (part.number && String(part.number).toLowerCase().includes(term)) return true;
+              if (part.cls && String(part.cls).toLowerCase().includes(term)) return true;
             }
             return false;
           });

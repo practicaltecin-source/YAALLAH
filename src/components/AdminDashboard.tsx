@@ -698,6 +698,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
   const [renumberPrefix, setRenumberPrefix] = useState('');
 
   // Candidate Export Modal States
+  const [resultCandidateSearch, setResultCandidateSearch] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportTeamFilter, setExportTeamFilter] = useState('all');
   const [exportGenderFilter, setExportGenderFilter] = useState('all');
@@ -6389,11 +6390,39 @@ function handleRequest(e) {
 
                 {/* Score mapping checks */}
                 <div className="border-t border-brand-line pt-3 space-y-2">
-                  <h4 className="text-xs font-bold text-brand-ink">
-                    Registered Candidate Standings ({resGender} Section)
-                  </h4>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h4 className="text-xs font-bold text-brand-ink">
+                      Registered Candidate Standings ({resGender} Section - {resAge})
+                    </h4>
+                    {resProgId && (
+                      <span className="text-[10px] font-medium text-brand-ink-soft">
+                        Select placements / grades for candidates below
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Quick Search in Candidate List */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="🔍 Search candidate by name, chest #, or team..."
+                      value={resultCandidateSearch}
+                      onChange={(e) => setResultCandidateSearch(e.target.value)}
+                      className="w-full pl-3 pr-8 py-1.5 bg-brand-bg border border-brand-line rounded-xl text-xs font-medium text-brand-ink focus:outline-none focus:border-brand-gold-500 shadow-2xs"
+                    />
+                    {resultCandidateSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setResultCandidateSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
                   {(() => {
-                    const candidates = db.participants.filter(p => {
+                    const allMapped = db.participants.filter(p => {
                       if (!p.programIds.includes(resProgId)) return false;
                       if (resGender === 'General') return true;
                       const genderMatch = p.gender === resGender || (!p.gender && resGender === 'Boys');
@@ -6401,11 +6430,21 @@ function handleRequest(e) {
                       return genderMatch && ageMatch;
                     });
 
-                    if (candidates.length === 0) {
+                    const candidates = allMapped.filter(p => {
+                      if (!resultCandidateSearch.trim()) return true;
+                      const q = resultCandidateSearch.toLowerCase().trim();
+                      const matchName = p.name.toLowerCase().includes(q);
+                      const matchNum = (p.number || '').toLowerCase().includes(q);
+                      const teamName = db.teams.find(t => t.id === p.teamId)?.name || '';
+                      const matchTeam = teamName.toLowerCase().includes(q);
+                      return matchName || matchNum || matchTeam;
+                    });
+
+                    if (allMapped.length === 0) {
                       return (
                         <div className="space-y-3">
                           <p className="text-[11px] text-brand-ink-soft leading-tight">
-                            No registered candidates were mapped to this program in the directory. You can enter arbitrary winner names below manually.
+                            No registered candidates were mapped to this program in the directory for <b>{resGender} ({resAge})</b>. You can enter arbitrary winner names below manually.
                           </p>
 
                           <div className="space-y-2">
@@ -6473,20 +6512,54 @@ function handleRequest(e) {
                       );
                     }
 
+                    if (candidates.length === 0 && resultCandidateSearch.trim()) {
+                      return (
+                        <div className="p-4 bg-brand-bg rounded-xl border border-brand-line text-center text-xs text-brand-ink-soft">
+                          No candidates found matching "{resultCandidateSearch}".
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                      <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                         {candidates.map(p => {
                           const tName = db.teams.find(t => t.id === p.teamId)?.name || 'No Team';
+                          const assignedVal = resTies[p.id] || '';
                           return (
-                            <div key={p.id} className="flex items-center justify-between p-2.5 bg-brand-bg rounded-xl border border-brand-line/50 text-xs">
-                              <div>
-                                <b className="text-brand-ink block font-semibold">{p.name}</b>
-                                <small className="text-brand-ink-soft block mt-0.5">{tName} &bull; No: #{p.number}</small>
+                            <div 
+                              key={p.id} 
+                              className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
+                                assignedVal === 'first' 
+                                  ? 'bg-amber-50 border-amber-300 shadow-2xs' 
+                                  : assignedVal === 'second' 
+                                  ? 'bg-slate-100 border-slate-300 shadow-2xs'
+                                  : assignedVal === 'third'
+                                  ? 'bg-amber-50/50 border-amber-200 shadow-2xs'
+                                  : assignedVal
+                                  ? 'bg-emerald-50/70 border-emerald-300 shadow-2xs'
+                                  : 'bg-brand-bg border-brand-line/50'
+                              }`}
+                            >
+                              <div className="min-w-0 pr-2">
+                                <b className="text-brand-ink block font-semibold truncate">{p.name}</b>
+                                <small className="text-brand-ink-soft block mt-0.5">
+                                  {tName} &bull; <span className="font-mono font-bold text-brand-gold-700">#{p.number}</span> {p.cls ? `&bull; Class ${p.cls}` : ''}
+                                </small>
                               </div>
                               <select
-                                value={resTies[p.id] || ''}
+                                value={assignedVal}
                                 onChange={(e) => setResTies({ ...resTies, [p.id]: e.target.value })}
-                                className="px-2.5 py-1.5 bg-white border border-brand-line rounded-lg text-xs"
+                                className={`px-2.5 py-1.5 border rounded-lg text-xs font-semibold shrink-0 cursor-pointer ${
+                                  assignedVal === 'first'
+                                    ? 'bg-amber-100 border-amber-400 text-amber-950 font-bold'
+                                    : assignedVal === 'second'
+                                    ? 'bg-slate-200 border-slate-400 text-slate-900 font-bold'
+                                    : assignedVal === 'third'
+                                    ? 'bg-amber-200/80 border-amber-400 text-amber-950 font-bold'
+                                    : assignedVal
+                                    ? 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold'
+                                    : 'bg-white border-brand-line text-brand-ink'
+                                }`}
                               >
                                 <option value="">— No Award —</option>
                                 <option value="first">🥇 1st Place</option>

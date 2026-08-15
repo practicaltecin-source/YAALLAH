@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Team } from '../types';
-import { Sparkles, Trophy, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Sparkles, Trophy, ChevronLeft, ChevronRight, Zap, Pause, Play, X } from 'lucide-react';
 import { applySuspenseRotation } from '../utils/suspense';
 
 interface LiveTeamScoreTickerProps {
   db: Database;
+  onDismiss?: () => void;
 }
 
-export const LiveTeamScoreTicker: React.FC<LiveTeamScoreTickerProps> = ({ db }) => {
+export const LiveTeamScoreTicker: React.FC<LiveTeamScoreTickerProps> = ({ db, onDismiss }) => {
   const [suspenseStep, setSuspenseStep] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    if (!db.settings?.suspenseSwapMode) {
+    if (!db.settings?.suspenseSwapMode || isPaused) {
       setSuspenseStep(0);
       return;
     }
@@ -20,7 +23,7 @@ export const LiveTeamScoreTicker: React.FC<LiveTeamScoreTickerProps> = ({ db }) 
       setSuspenseStep(prev => prev + 1);
     }, intervalMs);
     return () => clearInterval(interval);
-  }, [db.settings?.suspenseSwapMode, db.settings?.suspenseIntervalSec]);
+  }, [db.settings?.suspenseSwapMode, db.settings?.suspenseIntervalSec, isPaused]);
 
   let teams = [...(db.teams || [])].sort((a, b) => b.points - a.points);
   teams = applySuspenseRotation(teams, db.settings?.suspenseSwapMode, suspenseStep);
@@ -28,14 +31,14 @@ export const LiveTeamScoreTicker: React.FC<LiveTeamScoreTickerProps> = ({ db }) 
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    if (teams.length <= 1) return;
+    if (teams.length <= 1 || isPaused) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % teams.length);
     }, 2800);
     return () => clearInterval(interval);
-  }, [teams.length]);
+  }, [teams.length, isPaused]);
 
-  if (teams.length === 0) return null;
+  if (teams.length === 0 || isDismissed) return null;
 
   const currentTeam = teams[currentIndex] || teams[0];
   const rank = currentIndex + 1;
@@ -84,6 +87,13 @@ export const LiveTeamScoreTicker: React.FC<LiveTeamScoreTickerProps> = ({ db }) 
               {currentIndex + 1} / {teams.length}
             </span>
             <button
+              onClick={() => setIsPaused(!isPaused)}
+              className="p-1 hover:bg-white/20 rounded-md text-white/80 transition-colors cursor-pointer"
+              title={isPaused ? "Resume Auto-Play" : "Pause Auto-Play"}
+            >
+              {isPaused ? <Play className="w-3.5 h-3.5 text-emerald-400" /> : <Pause className="w-3.5 h-3.5" />}
+            </button>
+            <button
               onClick={handlePrev}
               className="p-1 hover:bg-white/20 rounded-md text-white/80 transition-colors cursor-pointer"
               title="Previous Team"
@@ -96,6 +106,16 @@ export const LiveTeamScoreTicker: React.FC<LiveTeamScoreTickerProps> = ({ db }) 
               title="Next Team"
             >
               <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                setIsDismissed(true);
+                if (onDismiss) onDismiss();
+              }}
+              className="p-1 hover:bg-red-500/40 rounded-md text-white/60 hover:text-white transition-colors cursor-pointer ml-1"
+              title="Close Ticker"
+            >
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
