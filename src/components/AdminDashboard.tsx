@@ -125,7 +125,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
   const [newNoticeTitle, setNewNoticeTitle] = useState('');
   const [newNoticeText, setNewNoticeText] = useState('');
-  const [newNoticeType, setNewNoticeType] = useState<'urgent' | 'important' | 'info' | 'general'>('urgent');
+  const [newNoticeType, setNewNoticeType] = useState<'urgent' | 'important' | 'info' | 'general' | 'sponsor'>('urgent');
   const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
 
   const handleAddOrUpdateNotice = () => {

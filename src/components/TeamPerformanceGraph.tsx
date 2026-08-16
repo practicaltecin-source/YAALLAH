@@ -1,37 +1,17 @@
 import React from 'react';
 import { Database } from '../types';
-import { TrendingUp, TrendingDown, Minus, BarChart3, Trophy, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
 
 interface TeamPerformanceGraphProps {
   db: Database;
 }
 
 export const TeamPerformanceGraph: React.FC<TeamPerformanceGraphProps> = ({ db }) => {
-  // Calculate total points for each team
-  const teamsData = db.teams.map((team) => {
-    let pts = 0;
-    let totalWinsCount = 0;
-
-    db.results.forEach((res) => {
-      const p = db.programs.find((prg) => prg.id === res.programId);
-      if (p && p.status === 'published') {
-        const teamWins = res.winners.filter((w) => w.teamId === team.id);
-        teamWins.forEach((w) => {
-          totalWinsCount++;
-          if (w.position === 1) pts += p.firstPoints ?? db.settings.points.first;
-          else if (w.position === 2) pts += p.secondPoints ?? db.settings.points.second;
-          else if (w.position === 3) pts += p.thirdPoints ?? db.settings.points.third;
-          else if (w.grade === 'A') pts += db.settings.points.gradeA;
-          else if (w.grade === 'B') pts += db.settings.points.gradeB;
-          else if (w.grade === 'C') pts += db.settings.points.gradeC;
-        });
-      }
-    });
-
+  // Use pre-calculated team points from the database
+  const teamsData = (db.teams || []).map((team) => {
     return {
       ...team,
-      totalPoints: pts,
-      winsCount: totalWinsCount,
+      totalPoints: team.points || 0
     };
   });
 
@@ -53,7 +33,7 @@ export const TeamPerformanceGraph: React.FC<TeamPerformanceGraphProps> = ({ db }
           </div>
           <div>
             <h3 className="text-base md:text-lg font-black text-amber-300 uppercase tracking-wide flex items-center gap-2">
-              <span>TEAM PERFORMANCE & TREND GRAPH</span>
+              <span>TEAM PERFORMANCE &amp; TREND GRAPH</span>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full uppercase font-bold">
                 LIVE ANALYTICS
               </span>

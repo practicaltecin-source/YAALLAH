@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KALIMA 2K26 - Admin Result Entry Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Cinzel:wght@700;900&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #08110c; color: #f1f5f9; }
+    .font-cinzel { font-family: 'Cinzel', serif; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-black">
+
+  <!-- TOP ADMIN BAR -->
+  <header class="sticky top-0 z-40 bg-[#0e1d16] border-b border-amber-500/30 shadow-xl">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-lg">
+          ⚙️
+        </div>
+        <div>
+          <h1 class="font-cinzel font-black text-amber-300 text-sm sm:text-base tracking-wider">
+            KALIMA 2K26 ADMIN PORTAL
+          </h1>
+          <p class="text-[11px] text-emerald-300/80 font-medium">
+            Category & Gender Segregated Result Management
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="saveAndSyncCloud()" id="btn-cloud-sync" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5">
+          <i class="fa-solid fa-cloud-arrow-up"></i> <span>Sync Cloud Sheet</span>
+        </button>
+        <a href="index.html" target="_blank" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> <span class="hidden sm:inline">Open Public View</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-6xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+    <!-- GOOGLE APPS SCRIPT WEB APP URL CONFIG -->
+    <section class="bg-[#12231b] border border-amber-500/30 rounded-3xl p-4 sm:p-5 shadow-xl space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/15 pb-2">
+        <h2 class="text-xs font-extrabold uppercase tracking-widest text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-link"></i> Google Apps Script Web App Connection
+        </h2>
+        <span id="conn-status" class="text-[11px] font-mono text-amber-300 bg-black/40 px-2.5 py-0.5 rounded-lg border border-amber-500/30">
+          Checking connection...
+        </span>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input 
+          type="text" 
+          id="script-url-input" 
+          placeholder="Paste your deployed Google Apps Script Web App URL (https://script.google.com/macros/s/.../exec)"
+          class="flex-1 bg-[#0a1611] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+        />
+        <button onclick="saveAppsScriptUrl()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-floppy-disk"></i> <span>Save &amp; Test URL</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- RESULT ENTRY CARD (HIERARCHICAL SELECTION) -->
+    <section class="bg-[#12231b] border border-amber-500/30 rounded-3xl p-5 md:p-6 shadow-2xl space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
+        <h2 class="text-sm md:text-base font-black text-amber-300 uppercase tracking-wide flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-amber-400"></i> Enter & Publish Competition Results
+        </h2>
+        <p class="text-xs text-slate-400 font-medium">
+          [Competition] &gt; [Category] &gt; [Gender] &gt; [1st, 2nd, 3rd]
+        </p>
+      </div>
+
+      <!-- Step 1: Select Competition, Category & Gender -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-[#0a1611] border border-slate-800 rounded-2xl">
+        <!-- 1. Competition -->
+        <div class="space-y-1.5">
+          <label class="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">1. Select Competition</label>
+          <select id="select-program" onchange="handleProgramChange()" class="w-full bg-[#12231b] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400">
+            <!-- Populated via script -->
+          </select>
+        </div>
+
+        <!-- 2. Category -->
+        <div class="space-y-1.5">
+          <label class="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">2. Select Category</label>
+          <select id="select-category" onchange="loadExistingResultData()" class="w-full bg-[#12231b] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400">
+            <option value="Kids">🧒 Kids (Class 1-2)</option>
+            <option value="Sub Junior">🎒 Sub-Junior (Class 3-4)</option>
+            <option value="Junior" selected>⭐ Junior (Class 5-6)</option>
+            <option value="Senior">🔥 Senior (Class 7-8)</option>
+            <option value="Super Senior">🎓 Super Senior (Class 9-12)</option>
+            <option value="General">🌐 General Category</option>
+          </select>
+        </div>
+
+        <!-- 3. Gender Section -->
+        <div class="space-y-1.5">
+          <label class="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">3. Select Gender Section</label>
+          <select id="select-gender" onchange="loadExistingResultData()" class="w-full bg-[#12231b] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400">
+            <option value="Boys">👦 Boys Section (ആൺകുട്ടികൾ)</option>
+            <option value="Girls">👧 Girls Section (പെൺകുട്ടികൾ)</option>
+            <option value="General">👥 General / Group Section</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step 2: Winner Input Fields (1st, 2nd, 3rd) -->
+      <div class="space-y-3.5">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-400 border-b border-slate-800 pb-1.5">
+          Declare 1st, 2nd, 3rd Winners for Selected Category &amp; Gender
+        </h3>
+
+        <!-- 1st Place -->
+        <div class="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2">
+          <div class="flex items-center gap-2 text-amber-300 font-extrabold text-xs">
+            <span class="text-base">🥇</span> <span>1st Place Winner (First Rank)</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="winner1-name" placeholder="Student Name (വിദ്യാർത്ഥിയുടെ പേര്)" class="w-full bg-[#0a1611] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400" />
+            <select id="winner1-team" class="w-full bg-[#0a1611] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+              <!-- Teams -->
+            </select>
+          </div>
+        </div>
+
+        <!-- 2nd Place -->
+        <div class="p-3.5 bg-slate-500/10 border border-slate-500/30 rounded-2xl space-y-2">
+          <div class="flex items-center gap-2 text-slate-200 font-extrabold text-xs">
+            <span class="text-base">🥈</span> <span>2nd Place Winner (Second Rank)</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="winner2-name" placeholder="Student Name (വിദ്യാർത്ഥിയുടെ പേര്)" class="w-full bg-[#0a1611] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400" />
+            <select id="winner2-team" class="w-full bg-[#0a1611] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+              <!-- Teams -->
+            </select>
+          </div>
+        </div>
+
+        <!-- 3rd Place -->
+        <div class="p-3.5 bg-amber-800/15 border border-amber-800/30 rounded-2xl space-y-2">
+          <div class="flex items-center gap-2 text-amber-500 font-extrabold text-xs">
+            <span class="text-base">🥉</span> <span>3rd Place Winner (Third Rank)</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="winner3-name" placeholder="Student Name (വിദ്യാർത്ഥിയുടെ പേര്)" class="w-full bg-[#0a1611] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400" />
+            <select id="winner3-team" class="w-full bg-[#0a1611] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+              <!-- Teams -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row gap-3 pt-2">
+        <button onclick="saveResultBlock()" class="flex-1 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer">
+          <i class="fa-solid fa-check-circle text-base"></i>
+          <span>Save &amp; Publish Result (ഫലം സേവ് ചെയ്യുക)</span>
+        </button>
+
+        <button onclick="clearResultFields()" class="py-3 px-6 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all active:scale-95">
+          Clear Fields
+        </button>
+      </div>
+
+      <!-- Status Toast -->
+      <div id="save-status" class="hidden p-3 rounded-xl text-xs font-bold text-center"></div>
+    </section>
+
+    <!-- PUBLISHED RESULTS LIST & OVERVIEW -->
+    <section class="bg-[#12231b] border border-amber-500/20 rounded-3xl p-5 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-amber-500/15 pb-2">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-list-check"></i> Published Results Summary
+        </h3>
+        <span id="published-count" class="text-xs font-mono text-slate-300">0 results saved</span>
+      </div>
+
+      <div id="admin-results-table-container" class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-[#0a1611] text-amber-300 border-b border-slate-700">
+              <th class="p-2.5">Program</th>
+              <th class="p-2.5">Category</th>
+              <th class="p-2.5">Gender</th>
+              <th class="p-2.5">1st Place</th>
+              <th class="p-2.5">2nd Place</th>
+              <th class="p-2.5">3rd Place</th>
+              <th class="p-2.5 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-results-tbody" class="divide-y divide-slate-800">
+            <!-- Populated via script -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    const APPS_SCRIPT_URL_KEY = 'mrms_apps_script_url';
+    let appsScriptUrl = localStorage.getItem(APPS_SCRIPT_URL_KEY) || '';
+
+    let localDb = {
+      teams: [
+        { id: 'team_a', name: 'Team A (Emerald)', symbol: '🟢', color: '#10b981', points: 0 },
+        { id: 'team_b', name: 'Team B (Sapphire)', symbol: '🔵', color: '#3b82f6', points: 0 },
+        { id: 'team_c', name: 'Team C (Ruby)', symbol: '🔴', color: '#ef4444', points: 0 },
+        { id: 'team_d', name: 'Team D (Topaz)', symbol: '🟡', color: '#f59e0b', points: 0 }
+      ],
+      programs: [
+        { id: 'p1', code: 'P01', name: 'QIRAATH (ഖിറാഅത്ത്)', stageType: 'Main Stage', venue: 'Stage 1' },
+        { id: 'p2', code: 'P02', name: 'ELOCUTION MALAYALAM (പ്രസംഗം)', stageType: 'Main Stage', venue: 'Stage 1' },
+        { id: 'p3', code: 'P03', name: 'MADH SONG (മദ്ഹ് ഗാനം)', stageType: 'Main Stage', venue: 'Stage 1' },
+        { id: 'p4', code: 'P04', name: 'ESSAY WRITING (ഉപന്യാസം)', stageType: 'Offstage', venue: 'Hall B' },
+        { id: 'p5', code: 'P05', name: 'QUIZ COMPETITION (ക്വിസ്)', stageType: 'Main Stage', venue: 'Stage 2' }
+      ],
+      participants: [],
+      results: [],
+      settings: {
+        eventName: 'KALIMA 2K26 MEELAD FEST',
+        boardName: 'LIVE SCOREBOARD',
+        subtitle: 'Live Competition Results, Scoring Points & Schedules',
+        points: { first: 10, second: 7, third: 5, generalFirst: 15, generalSecond: 10, generalThird: 7 }
+      }
+    };
+
+    function init() {
+      // Load saved DB if available
+      const saved = localStorage.getItem('fest_portal_db_v1');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.teams)) {
+            localDb = parsed;
+          }
+        } catch(e) {}
+      }
+
+      // Populate Web App URL input
+      const urlInput = document.getElementById('script-url-input');
+      if (urlInput) urlInput.value = appsScriptUrl;
+      updateConnectionStatus();
+
+      // Populate Selects
+      populateProgramSelect();
+      populateTeamSelects();
+      loadExistingResultData();
+      renderAdminResultsTable();
+
+      // Attempt cloud pull
+      if (appsScriptUrl) {
+        pullFromCloud();
+      }
+    }
+
+    function saveAppsScriptUrl() {
+      const url = (document.getElementById('script-url-input').value || '').trim();
+      appsScriptUrl = url;
+      localStorage.setItem(APPS_SCRIPT_URL_KEY, url);
+      updateConnectionStatus();
+      if (url) {
+        pullFromCloud(true);
+      }
+    }
+
+    async function updateConnectionStatus() {
+      const el = document.getElementById('conn-status');
+      if (!appsScriptUrl) {
+        el.innerText = '⚠️ Web App URL not set';
+        el.className = 'text-[11px] font-mono text-amber-400 bg-amber-950/60 px-2.5 py-0.5 rounded-lg border border-amber-500/30';
+        return;
+      }
+      el.innerText = '🔗 Connected to Apps Script';
+      el.className = 'text-[11px] font-mono text-emerald-300 bg-emerald-950 px-2.5 py-0.5 rounded-lg border border-emerald-500/30';
+    }
+
+    function populateProgramSelect() {
+      const sel = document.getElementById('select-program');
+      sel.innerHTML = (localDb.programs || []).map(p => `
+        <option value="${p.id}">${p.code ? p.code + ' - ' : ''}${p.name}</option>
+      `).join('');
+    }
+
+    function populateTeamSelects() {
+      const teams = localDb.teams || [];
+      const opts = '<option value="">— Select Team —</option>' + teams.map(t => `
+        <option value="${t.id}">${t.symbol || '🛡️'} ${t.name}</option>
+      `).join('');
+
+      document.getElementById('winner1-team').innerHTML = opts;
+      document.getElementById('winner2-team').innerHTML = opts;
+      document.getElementById('winner3-team').innerHTML = opts;
+    }
+
+    function handleProgramChange() {
+      loadExistingResultData();
+    }
+
+    function loadExistingResultData() {
+      const progId = document.getElementById('select-program').value;
+      const category = document.getElementById('select-category').value;
+      const gender = document.getElementById('select-gender').value;
+
+      // Find if result already exists for this exact program + category + gender
+      const match = (localDb.results || []).find(r => r.programId === progId && r.age === category && r.gender === gender);
+
+      if (match && match.winners) {
+        const w1 = match.winners.first?.[0];
+        const w2 = match.winners.second?.[0];
+        const w3 = match.winners.third?.[0];
+
+        document.getElementById('winner1-name').value = w1?.name || '';
+        document.getElementById('winner1-team').value = w1?.teamId || '';
+
+        document.getElementById('winner2-name').value = w2?.name || '';
+        document.getElementById('winner2-team').value = w2?.teamId || '';
+
+        document.getElementById('winner3-name').value = w3?.name || '';
+        document.getElementById('winner3-team').value = w3?.teamId || '';
+      } else {
+        clearResultFields();
+      }
+    }
+
+    function clearResultFields() {
+      document.getElementById('winner1-name').value = '';
+      document.getElementById('winner1-team').value = '';
+      document.getElementById('winner2-name').value = '';
+      document.getElementById('winner2-team').value = '';
+      document.getElementById('winner3-name').value = '';
+      document.getElementById('winner3-team').value = '';
+    }
+
+    function calculateTeamPoints(db) {
+      const ptsConfig = db.settings?.points || { first: 10, second: 7, third: 5, generalFirst: 15, generalSecond: 10, generalThird: 7 };
+      const teamPoints = {};
+      (db.teams || []).forEach(t => { teamPoints[t.id] = 0; });
+
+      (db.results || []).forEach(r => {
+        const isGen = (r.gender === 'General' || r.age === 'General' || r.age === 'All');
+        const pFirst = isGen ? (ptsConfig.generalFirst || 15) : (ptsConfig.first || 10);
+        const pSecond = isGen ? (ptsConfig.generalSecond || 10) : (ptsConfig.second || 7);
+        const pThird = isGen ? (ptsConfig.generalThird || 7) : (ptsConfig.third || 5);
+
+        (r.winners?.first || []).forEach(w => { if (w.teamId && teamPoints[w.teamId] !== undefined) teamPoints[w.teamId] += pFirst; });
+        (r.winners?.second || []).forEach(w => { if (w.teamId && teamPoints[w.teamId] !== undefined) teamPoints[w.teamId] += pSecond; });
+        (r.winners?.third || []).forEach(w => { if (w.teamId && teamPoints[w.teamId] !== undefined) teamPoints[w.teamId] += pThird; });
+      });
+
+      db.teams = (db.teams || []).map(t => ({
+        ...t,
+        points: teamPoints[t.id] || 0
+      }));
+    }
+
+    async function saveResultBlock() {
+      const progId = document.getElementById('select-program').value;
+      const category = document.getElementById('select-category').value;
+      const gender = document.getElementById('select-gender').value;
+
+      const w1Name = document.getElementById('winner1-name').value.trim();
+      const w1Team = document.getElementById('winner1-team').value;
+
+      const w2Name = document.getElementById('winner2-name').value.trim();
+      const w2Team = document.getElementById('winner2-team').value;
+
+      const w3Name = document.getElementById('winner3-name').value.trim();
+      const w3Team = document.getElementById('winner3-team').value;
+
+      const winners = {
+        first: w1Name ? [{ name: w1Name, teamId: w1Team || null }] : [],
+        second: w2Name ? [{ name: w2Name, teamId: w2Team || null }] : [],
+        third: w3Name ? [{ name: w3Name, teamId: w3Team || null }] : []
+      };
+
+      const hasData = winners.first.length > 0 || winners.second.length > 0 || winners.third.length > 0;
+
+      // Filter existing or replace
+      let updatedResults = (localDb.results || []).filter(r => !(r.programId === progId && r.age === category && r.gender === gender));
+
+      if (hasData) {
+        updatedResults.push({
+          id: 'res_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          programId: progId,
+          age: category,
+          gender: gender,
+          winners: winners,
+          grades: { gradeA: [], gradeB: [], gradeC: [], participation: [] },
+          datetime: new Date().toISOString()
+        });
+      }
+
+      localDb.results = updatedResults;
+      localDb.lastModified = Date.now();
+      calculateTeamPoints(localDb);
+
+      // Save locally
+      localStorage.setItem('fest_portal_db_v1', JSON.stringify(localDb));
+      renderAdminResultsTable();
+
+      showStatus('✅ Result saved locally! Syncing with Google Sheets...', 'success');
+
+      // Sync Cloud
+      await saveAndSyncCloud();
+    }
+
+    async function saveAndSyncCloud() {
+      const btn = document.getElementById('btn-cloud-sync');
+      if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Syncing...</span>';
+
+      if (!appsScriptUrl) {
+        showStatus('⚠️ Web App URL is not set. Results saved locally.', 'warning');
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> <span>Sync Cloud Sheet</span>';
+        return;
+      }
+
+      try {
+        const payload = {
+          action: 'sync',
+          db: localDb
+        };
+
+        const res = await fetch(appsScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+        if (json && (json.status === 'success' || json.status === 'ok')) {
+          showStatus('🎉 Synced & Published instantly to Google Sheets and Public View!', 'success');
+        } else {
+          showStatus('⚠️ Sync warning: ' + (json.message || 'Check Apps Script deployment'), 'warning');
+        }
+      } catch (err) {
+        showStatus('⚠️ Sync completed locally. (Apps Script connection notice: ' + err.message + ')', 'warning');
+      } finally {
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> <span>Sync Cloud Sheet</span>';
+      }
+    }
+
+    async function pullFromCloud(showToast = false) {
+      if (!appsScriptUrl) return;
+      try {
+        const res = await fetch(appsScriptUrl + (appsScriptUrl.includes('?') ? '&' : '?') + 'action=read&t=' + Date.now());
+        const json = await res.json();
+        if (json && json.status === 'success' && json.db) {
+          localDb = json.db;
+          localStorage.setItem('fest_portal_db_v1', JSON.stringify(localDb));
+          populateProgramSelect();
+          populateTeamSelects();
+          loadExistingResultData();
+          renderAdminResultsTable();
+          if (showToast) showStatus('✅ Connected & synced with latest Google Sheet data', 'success');
+        }
+      } catch (e) {
+        console.warn('Pull warning:', e);
+      }
+    }
+
+    function renderAdminResultsTable() {
+      const tbody = document.getElementById('admin-results-tbody');
+      const results = localDb.results || [];
+      const programs = localDb.programs || [];
+      const teams = localDb.teams || [];
+      const teamMap = {};
+      teams.forEach(t => { teamMap[t.id] = t.name; });
+
+      document.getElementById('published-count').innerText = `${results.length} result(s) saved`;
+
+      if (results.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center p-6 text-slate-500 italic">No results published yet. Select a competition above to start entering results.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = results.map(r => {
+        const prog = programs.find(p => p.id === r.programId) || { code: '-', name: 'Program' };
+        const w1 = r.winners?.first?.[0];
+        const w2 = r.winners?.second?.[0];
+        const w3 = r.winners?.third?.[0];
+
+        const w1Text = w1 ? `${w1.name} <span class="text-[10px] text-amber-400">(${teamMap[w1.teamId] || '—'})</span>` : '—';
+        const w2Text = w2 ? `${w2.name} <span class="text-[10px] text-slate-400">(${teamMap[w2.teamId] || '—'})</span>` : '—';
+        const w3Text = w3 ? `${w3.name} <span class="text-[10px] text-amber-600">(${teamMap[w3.teamId] || '—'})</span>` : '—';
+
+        return `
+          <tr class="hover:bg-slate-900/50">
+            <td class="p-2.5 font-bold text-white"><span class="font-mono text-amber-400">${prog.code || ''}</span> ${prog.name}</td>
+            <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-amber-300">${r.age}</span></td>
+            <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${r.gender === 'Boys' ? 'bg-sky-950 text-sky-300' : r.gender === 'Girls' ? 'bg-fuchsia-950 text-fuchsia-300' : 'bg-emerald-950 text-emerald-300'}">${r.gender}</span></td>
+            <td class="p-2.5">${w1Text}</td>
+            <td class="p-2.5">${w2Text}</td>
+            <td class="p-2.5">${w3Text}</td>
+            <td class="p-2.5 text-center">
+              <button onclick="editResultRow('${r.programId}', '${r.age}', '${r.gender}')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-xs font-bold mr-1">Edit</button>
+              <button onclick="deleteResultRow('${r.id}')" class="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs font-bold">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function editResultRow(progId, age, gender) {
+      document.getElementById('select-program').value = progId;
+      document.getElementById('select-category').value = age;
+      document.getElementById('select-gender').value = gender;
+      loadExistingResultData();
+      window.scrollTo({ top: 180, behavior: 'smooth' });
+    }
+
+    async function deleteResultRow(id) {
+      if (!confirm('Are you sure you want to delete this result?')) return;
+      localDb.results = (localDb.results || []).filter(r => r.id !== id);
+      calculateTeamPoints(localDb);
+      localStorage.setItem('fest_portal_db_v1', JSON.stringify(localDb));
+      renderAdminResultsTable();
+      await saveAndSyncCloud();
+    }
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('save-status');
+      el.className = `p-3 rounded-xl text-xs font-bold text-center ${type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40' : 'bg-amber-950/80 text-amber-300 border border-amber-500/40'}`;
+      el.innerText = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => { el.classList.add('hidden'); }, 6000);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
