@@ -28,20 +28,7 @@ const APP_STATE_DOC = doc(db, 'appState', 'current');
 
 export const FIRESTORE_UPGRADE_URL = `https://console.firebase.google.com/project/${resolvedConfig.projectId}/firestore/databases/${resolvedConfig.firestoreDatabaseId}/data?openUpgradeDialog=true`;
 
-const QUOTA_STORAGE_KEY = 'firestore_quota_exhausted_day';
-
-function getTodayString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-let isQuotaExhausted = (() => {
-  try {
-    const savedDay = localStorage.getItem(QUOTA_STORAGE_KEY);
-    return savedDay === getTodayString();
-  } catch (e) {
-    return false;
-  }
-})();
+let isQuotaExhausted = false;
 
 const quotaListeners = new Set<(exhausted: boolean) => void>();
 
@@ -77,26 +64,22 @@ export function handleQuotaError(error: any): boolean {
   if (isQuota) {
     if (!isQuotaExhausted) {
       isQuotaExhausted = true;
-      try {
-        localStorage.setItem(QUOTA_STORAGE_KEY, getTodayString());
-      } catch (e) {}
       notifyQuotaListeners();
-      console.warn('Firestore daily write quota reached (Spark Free Tier limit: 20k writes/day). The app is seamlessly switching to local storage, server sync, and Google Sheets fallback. Free tier resets at UTC midnight.');
+      console.warn('Firestore write quota warning. Multi-device live sync will use backend server & Google Sheets fallbacks.');
     }
     return true;
   }
   return false;
 }
 
-// Validate connection to Firestore on boot with quota protection
+// Validate connection to Firestore on boot
 async function testConnection() {
-  if (isQuotaExhausted) return;
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (handleQuotaError(error)) return;
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firestore client appears offline or connecting...");
+      console.warn("Firestore client connecting...");
     }
   }
 }
@@ -107,11 +90,9 @@ let lastWrittenHash = '';
 let savePromise: Promise<boolean> | null = null;
 
 export async function saveToFirestore(dbData: Database): Promise<boolean> {
-  if (isQuotaExhausted) return false;
   if (!dbData || !Array.isArray(dbData.teams)) return false;
 
   try {
-    // Quick hash to prevent duplicate writes of identical data
     const currentHash = `${dbData.lastModified}_${dbData.results?.length || 0}_${dbData.programs?.length || 0}_${dbData.participants?.length || 0}`;
     if (currentHash === lastWrittenHash) {
       return true;
@@ -126,7 +107,7 @@ export async function saveToFirestore(dbData: Database): Promise<boolean> {
       try {
         await setDoc(APP_STATE_DOC, sanitized);
         lastWrittenHash = currentHash;
-        console.log('✅ Synced to Cloud Firestore (/appState/current)');
+        console.log('✅ Real-time multi-device cloud sync updated (/appState/current)');
         return true;
       } catch (error: any) {
         if (!handleQuotaError(error)) {
@@ -148,7 +129,6 @@ export async function saveToFirestore(dbData: Database): Promise<boolean> {
 }
 
 export async function resetFirestoreClean(cleanData: Database): Promise<boolean> {
-  if (isQuotaExhausted) return false;
   try {
     const sanitized = JSON.parse(JSON.stringify(cleanData));
     await setDoc(APP_STATE_DOC, sanitized);
@@ -162,7 +142,6 @@ export async function resetFirestoreClean(cleanData: Database): Promise<boolean>
 }
 
 export async function fetchFromFirestore(): Promise<Database | null> {
-  if (isQuotaExhausted) return null;
   try {
     const snap = await getDoc(APP_STATE_DOC);
     if (snap.exists()) {
@@ -181,7 +160,6 @@ export async function fetchFromFirestore(): Promise<Database | null> {
 }
 
 export function subscribeToFirestore(onUpdate: (data: Database) => void): () => void {
-  if (isQuotaExhausted) return () => {};
   try {
     return onSnapshot(
       APP_STATE_DOC,
@@ -206,5 +184,3 @@ export function subscribeToFirestore(onUpdate: (data: Database) => void): () => 
     return () => {};
   }
 }
-
-

@@ -194,6 +194,8 @@ export default function App() {
         const normalized = normalizeDB(firestoreData);
         if (normalized) {
           const currentLocal = dbRef.current || loadDB();
+          const localTime = Number(currentLocal.lastModified || 0);
+          const remoteTime = Number(normalized.lastModified || 0);
           const hasLocalData = (currentLocal.programs?.length || 0) > 0 || (currentLocal.participants?.length || 0) > 0 || (currentLocal.results?.length || 0) > 0;
           const hasRemoteData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
 
@@ -201,7 +203,7 @@ export default function App() {
             return;
           }
 
-          const preferRemote = (!hasLocalData && hasRemoteData) || (Number(normalized.lastModified || 0) >= Number(currentLocal.lastModified || 0));
+          const preferRemote = (!hasLocalData && hasRemoteData) || (remoteTime >= localTime);
 
           const merged = mergeDatabase(currentLocal, normalized, preferRemote);
           const calculated = calculatePoints(merged);

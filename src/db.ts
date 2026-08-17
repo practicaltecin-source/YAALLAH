@@ -31,6 +31,7 @@ export const GENDER_ICONS: Record<string, string> = {
 };
 
 export const STORAGE_KEY = 'fest_portal_db_v1';
+export const BACKUP_STORAGE_KEY = 'fest_portal_db_backup_v1';
 export const FIREBASE_URL_KEY = 'mrms_firebase_url';
 export const HARDCODED_FIREBASE_URL = '';
 
@@ -216,7 +217,6 @@ export function normalizeDB(parsed: any): Database | null {
     .map((p: any) => {
       let st = (p.startTime || '').toString().trim();
       let et = (p.endTime || '').toString().trim();
-      // Sanitize corrupted time fields containing gender keywords
       if (st.toLowerCase().includes('boy') || st.toLowerCase().includes('girl') || st.toLowerCase().includes('general')) st = '';
       if (et.toLowerCase().includes('boy') || et.toLowerCase().includes('girl') || et.toLowerCase().includes('general')) et = '';
       return {
@@ -242,141 +242,168 @@ export function normalizeDB(parsed: any): Database | null {
     .filter((p: any) => p && (p.name || p.number))
     .map((p: any) => {
       const rawProgs = Array.isArray(p.programIds) ? p.programIds : (p.programId ? [p.programId] : []);
-      // Filter out non-existent program IDs from participant enrolments
       const validEnrolled = rawProgs.filter((id: string) => validProgIds.has(id));
       return {
         ...p,
         name: cleanText(p.name) || p.name,
         number: (p.number || '').toString().trim(),
-        programIds: validEnrolled,
-        teamId: validTeamIds.has(p.teamId) ? p.teamId : (teams[0]?.id || p.teamId),
-        cls: p.cls ?? '',
-        division: p.division ?? '',
-        age: p.cls ? classToAge(p.cls) : (p.age || 'Kids')
+        cls: p.cls !== undefined ? p.cls : (p.class !== undefined ? p.class : ''),
+        division: cleanText(p.division || ''),
+        teamId: p.teamId || null,
+        gender: p.gender || 'Boys',
+        age: p.age || 'Kids',
+        programIds: validEnrolled
       };
     });
 
-  // Auto-deduplicate candidates to prevent duplicate rows in sheets & UI
-  const seenParticipantKeys = new Map<string, Participant>();
-  rawParticipants.forEach((pa: any) => {
-    const cNum = (pa.number || '').trim().toLowerCase();
-    const cName = (pa.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
-    const key = cNum && cNum !== '-' ? `chest_${cNum}` : `name_${cName}`;
+  const participantIds = new Set(rawParticipants.map((p: any) => p.id));
 
-    if (key && seenParticipantKeys.has(key)) {
-      const existing = seenParticipantKeys.get(key)!;
-      existing.programIds = Array.from(new Set([...(existing.programIds || []), ...(pa.programIds || [])]));
-      if (!existing.cls && pa.cls) existing.cls = pa.cls;
-      if (!existing.division && pa.division) existing.division = pa.division;
-      if (!existing.teamId && pa.teamId) existing.teamId = pa.teamId;
-    } else {
-      seenParticipantKeys.set(key, { ...pa });
-    }
-  });
+  const results = (parsed.results || [])
+    .filter((r: any) => r && r.programId)
+    .map((r: any) => {
+      const filterValidWinners = (arr: any[]) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(w => {
+          if (!w) return false;
+          if (w.name && String(w.name).trim().length > 0) return true;
+          if (w.candidateId && participantIds.has(w.candidateId)) return true;
+          if (w.teamId && validTeamIds.has(w.teamId)) return true;
+          return false;
+        }).map(w => ({
+          ...w,
+          name: cleanText(w.name || ''),
+          teamId: (w.teamId && validTeamIds.has(w.teamId)) ? w.teamId : null
+        }));
+      };
 
-  const participants = Array.from(seenParticipantKeys.values());
-
-  // Clean up and deduplicate results (remove orphaned results pointing to deleted programs)
-  const resultsByProgram = new Map<string, any>();
-  (parsed.results || []).forEach((r: any) => {
-    if (!r || !r.programId || !validProgIds.has(r.programId)) return; // Purge orphaned result
-
-    const winners = r.winners || {};
-    const grades = r.grades || { gradeA: [], gradeB: [], gradeC: [], participation: [] };
-
-    const cleanedResult = {
-      ...r,
-      winners: {
-        first: (Array.isArray(winners.first) ? winners.first : (winners.first ? [winners.first] : [])).filter(Boolean),
-        second: (Array.isArray(winners.second) ? winners.second : (winners.second ? [winners.second] : [])).filter(Boolean),
-        third: (Array.isArray(winners.third) ? winners.third : (winners.third ? [winners.third] : [])).filter(Boolean)
-      },
-      grades: {
-        gradeA: (Array.isArray(grades.gradeA) ? grades.gradeA : []).filter(Boolean),
-        gradeB: (Array.isArray(grades.gradeB) ? grades.gradeB : []).filter(Boolean),
-        gradeC: (Array.isArray(grades.gradeC) ? grades.gradeC : []).filter(Boolean),
-        participation: (Array.isArray(grades.participation) ? grades.participation : []).filter(Boolean)
-      }
-    };
-
-    // Keep the latest result if duplicates exist
-    if (!resultsByProgram.has(r.programId) || (r.datetime && new Date(r.datetime) > new Date(resultsByProgram.get(r.programId).datetime))) {
-      resultsByProgram.set(r.programId, cleanedResult);
-    }
-  });
-
-  const results = Array.from(resultsByProgram.values());
+      return {
+        id: r.id || generateId(),
+        programId: r.programId,
+        gender: r.gender || 'Boys',
+        age: r.age || 'Junior',
+        winners: {
+          first: filterValidWinners(r.winners?.first),
+          second: filterValidWinners(r.winners?.second),
+          third: filterValidWinners(r.winners?.third)
+        },
+        grades: {
+          gradeA: filterValidWinners(r.grades?.gradeA),
+          gradeB: filterValidWinners(r.grades?.gradeB),
+          gradeC: filterValidWinners(r.grades?.gradeC),
+          participation: filterValidWinners(r.grades?.participation)
+        },
+        datetime: r.datetime || new Date().toISOString()
+      };
+    });
 
   return {
-    ...parsed,
-    participants,
-    results
+    teams,
+    programs,
+    participants: rawParticipants,
+    results,
+    settings: parsed.settings,
+    prevRanks: parsed.prevRanks || {},
+    lastModified: parsed.lastModified || 0,
+    isExplicitReset: Boolean(parsed.isExplicitReset)
   };
 }
 
-export const BACKUP_STORAGE_KEY = 'fest_portal_db_backup_v1';
-
 export function loadDB(): Database {
   try {
-    ['mrms_db_v1', 'mrms_db_v2', 'mrms_db_v3', 'mrms_db_v4', 'mrms_db_v5', 'mrms_db_v10_reset', 'mrms_db_v100_clean', 'mrms_db_v105_english_pro'].forEach(k => {
-      try { localStorage.removeItem(k); } catch (e) {}
-    });
-
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       const normalized = normalizeDB(parsed);
       if (normalized) {
-        const hasData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
-        if (hasData) return normalized;
+        return calculatePoints(normalized);
       }
     }
-
-    // Secondary recovery check: immutable backup key
-    const rawBackup = localStorage.getItem(BACKUP_STORAGE_KEY);
-    if (rawBackup) {
-      const parsedBackup = JSON.parse(rawBackup);
-      const normalizedBackup = normalizeDB(parsedBackup);
-      if (normalizedBackup) {
-        const hasBackupData = (normalizedBackup.programs?.length || 0) > 0 || (normalizedBackup.participants?.length || 0) > 0 || (normalizedBackup.results?.length || 0) > 0;
-        if (hasBackupData) return normalizedBackup;
-      }
-    }
-
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return normalizeDB(parsed) || defaultDB();
-    }
-    return defaultDB();
   } catch (e) {
-    return defaultDB();
+    console.error('Error loading DB from localStorage:', e);
   }
+
+  // Initial seed fallback
+  if (initialSeedData) {
+    const seed = normalizeDB(initialSeedData);
+    if (seed) {
+      return calculatePoints(seed);
+    }
+  }
+
+  return calculatePoints(defaultDB());
 }
 
 export function saveDBLocal(db: Database, preserveTimestamp: boolean = false): Database {
   const updated: Database = {
     ...db,
-    lastModified: preserveTimestamp ? (db.lastModified || Date.now()) : Math.max(Date.now(), (db.lastModified || 0) + 1)
+    lastModified: preserveTimestamp ? (db.lastModified || Date.now()) : Date.now()
   };
   try {
-    const serialized = JSON.stringify(updated);
-    localStorage.setItem(STORAGE_KEY, serialized);
-    
-    // Save backup if non-empty
-    const hasData = (updated.programs?.length || 0) > 0 || (updated.participants?.length || 0) > 0 || (updated.results?.length || 0) > 0;
-    if (hasData) {
-      localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
-    }
-
-    if (typeof BroadcastChannel !== 'undefined') {
-      const channel = new BroadcastChannel('mrms_db_channel');
-      channel.postMessage({ type: 'DB_UPDATED', lastModified: updated.lastModified });
-      channel.close();
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    // Also save a backup copy
+    localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(updated));
   } catch (e) {
-    console.error('Failed to update local storage:', e);
+    console.error('Error saving DB to localStorage:', e);
   }
   return updated;
+}
+
+export function calculatePoints(db: Database): Database {
+  const ptsConfig = db.settings?.points || {
+    first: 10,
+    second: 7,
+    third: 5,
+    generalFirst: 15,
+    generalSecond: 10,
+    generalThird: 7,
+    participation: 1,
+    gradeA: 5,
+    gradeB: 3,
+    gradeC: 1
+  };
+
+  const teamPoints: Record<string, number> = {};
+  (db.teams || []).forEach(t => {
+    teamPoints[t.id] = 0;
+  });
+
+  (db.results || []).forEach(res => {
+    const prog = (db.programs || []).find(p => p.id === res.programId);
+    const isGeneral = res.gender === 'General' || (res.age as string) === 'General' || res.age === 'All' || Boolean(prog && prog.group);
+
+    const firstVal = isGeneral ? (ptsConfig.generalFirst ?? 15) : (ptsConfig.first ?? 10);
+    const secondVal = isGeneral ? (ptsConfig.generalSecond ?? 10) : (ptsConfig.second ?? 7);
+    const thirdVal = isGeneral ? (ptsConfig.generalThird ?? 7) : (ptsConfig.third ?? 5);
+
+    const addWinnersPoints = (winnersList: any[], pointsValue: number) => {
+      (winnersList || []).forEach(w => {
+        if (w && w.teamId && teamPoints[w.teamId] !== undefined) {
+          teamPoints[w.teamId] += pointsValue;
+        }
+      });
+    };
+
+    addWinnersPoints(res.winners?.first, firstVal);
+    addWinnersPoints(res.winners?.second, secondVal);
+    addWinnersPoints(res.winners?.third, thirdVal);
+
+    if (res.grades) {
+      addWinnersPoints(res.grades.gradeA, ptsConfig.gradeA ?? 5);
+      addWinnersPoints(res.grades.gradeB, ptsConfig.gradeB ?? 3);
+      addWinnersPoints(res.grades.gradeC, ptsConfig.gradeC ?? 1);
+      addWinnersPoints(res.grades.participation, ptsConfig.participation ?? 1);
+    }
+  });
+
+  const updatedTeams = (db.teams || []).map(t => ({
+    ...t,
+    points: teamPoints[t.id] || 0
+  }));
+
+  return {
+    ...db,
+    teams: updatedTeams
+  };
 }
 
 export function getFirebaseUrl(): string {
@@ -397,7 +424,7 @@ export async function pushToFirebase(db: Database): Promise<boolean> {
   const updated = { ...db, lastModified: Date.now() };
   saveDBLocal(updated, true);
 
-  // Push to Firestore Cloud Database for instant multi-device real-time sync across Netlify / GitHub Pages
+  // Push to Firestore Cloud Database for instant multi-device real-time sync across all phones
   const firestoreOk = await saveToFirestore(updated).catch(() => false);
 
   // Also push to local server endpoint
@@ -408,7 +435,6 @@ export async function pushToFirebase(db: Database): Promise<boolean> {
 
   return firestoreOk || true;
 }
-
 
 export function mergeSettings(localSettings: Settings, remoteSettings: Settings, preferRemote: boolean = false): Settings {
   if (!localSettings) return remoteSettings || defaultDB().settings;
@@ -422,7 +448,6 @@ export function mergeSettings(localSettings: Settings, remoteSettings: Settings,
     ...defaultSettings,
     ...secondary,
     ...primary,
-    // Safely preserve objects and arrays
     points: {
       ...defaultSettings.points,
       ...(secondary.points || {}),
@@ -459,19 +484,24 @@ export function mergeDatabase(localDb: Database, remoteDb: Database, forcePrefer
     return remoteDb;
   }
 
+  const localTime = Number(localDb.lastModified || 0);
+  const remoteTime = Number(remoteDb.lastModified || 0);
+
   if (forcePreferRemote && (remoteHasData || remoteDb.isExplicitReset)) {
     return remoteDb;
   }
 
-  const localTime = Number(localDb.lastModified || 0);
-  const remoteTime = Number(remoteDb.lastModified || 0);
+  // If remote has strictly newer timestamp, prefer remote updates completely
+  if (remoteTime > localTime && remoteHasData) {
+    return remoteDb;
+  }
 
   // If remote is explicit reset
   if (remoteDb.isExplicitReset && remoteTime >= localTime) {
     return remoteDb;
   }
 
-  // If both have data, merge union of programs, participants, and results intelligently
+  // Merge union of programs, participants, and results intelligently
   // 1. Teams: Merge
   const teamMap = new Map<string, Team>();
   (localDb.teams || []).forEach(t => teamMap.set(t.id, t));
@@ -603,12 +633,10 @@ export async function fetchFromAppsScriptDirect(customUrl?: string): Promise<Dat
           }
         } catch (e) {}
       } else {
-        // If response is HTML or Script function not found, abort early
         return null;
       }
     }
 
-    // Secondary attempt: POST with { action: 'read' }
     const postController = new AbortController();
     const postTimeout = setTimeout(() => postController.abort(), 8000);
 
@@ -652,7 +680,6 @@ export async function pushToAppsScriptDirect(db: Database): Promise<boolean> {
   };
   const jsonPayload = JSON.stringify({ action: 'write', db: updated });
 
-  // 1. Try via server proxy if running with Express server
   try {
     const proxyRes = await fetch('/api/webhook-proxy', {
       method: 'POST',
@@ -667,11 +694,8 @@ export async function pushToAppsScriptDirect(db: Database): Promise<boolean> {
       const data = await proxyRes.json();
       if (data.success) return true;
     }
-  } catch (proxyErr) {
-    // Proxy not available in static/Vercel deployment, continue to direct client push
-  }
+  } catch (proxyErr) {}
 
-  // 2. Direct push to Google Apps Script Web App using no-cors (bypasses browser CORS & redirects)
   try {
     await fetch(targetUrl, {
       method: 'POST',
@@ -718,139 +742,52 @@ export async function fetchFromServer(): Promise<Database | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data) return null;
-    return normalizeDB(data);
-  } catch (e) {
-    return null;
-  }
+    if (data.db) {
+      return normalizeDB(data.db);
+    }
+  } catch (e) {}
+  return null;
 }
 
-export async function syncDatabase(localDb: Database): Promise<{ db: Database; updated: boolean }> {
+export async function syncDatabase(currentDB: Database): Promise<{ db: Database; updated: boolean }> {
   try {
-    const localHasData = (localDb?.programs?.length || 0) > 0 || (localDb?.participants?.length || 0) > 0 || (localDb?.results?.length || 0) > 0;
+    // 1. Primary: Real-time Cloud Firestore
+    const firestoreData = await fetchFromFirestore().catch(() => null);
+    if (firestoreData && Array.isArray(firestoreData.teams)) {
+      const normalized = normalizeDB(firestoreData);
+      if (normalized) {
+        const localTime = Number(currentDB.lastModified || 0);
+        const remoteTime = Number(normalized.lastModified || 0);
+        const localHasData = (currentDB.programs?.length || 0) > 0 || (currentDB.participants?.length || 0) > 0 || (currentDB.results?.length || 0) > 0;
+        const remoteHasData = (normalized.programs?.length || 0) > 0 || (normalized.participants?.length || 0) > 0 || (normalized.results?.length || 0) > 0;
 
-    // 1. PRIMARY CLOUD SOURCE OF TRUTH: Cloud Firestore
-    const remoteFirestore = await fetchFromFirestore().catch(() => null);
-
-    if (remoteFirestore && Array.isArray(remoteFirestore.teams)) {
-      const normalizedFirestore = normalizeDB(remoteFirestore);
-      if (normalizedFirestore) {
-        const remoteHasData = (normalizedFirestore.programs?.length || 0) > 0 || (normalizedFirestore.participants?.length || 0) > 0 || (normalizedFirestore.results?.length || 0) > 0;
-        
-        // If local has data but remote is empty and not explicit reset, do not overwrite local
-        if (localHasData && !remoteHasData && !normalizedFirestore.isExplicitReset) {
-          return { db: localDb, updated: false };
-        }
-
-        const localTime = Number(localDb.lastModified || 0);
-        const remoteTime = Number(normalizedFirestore.lastModified || 0);
-
-        if (remoteTime > localTime || (!localHasData && remoteHasData)) {
-          const merged = mergeDatabase(localDb, normalizedFirestore, true);
+        if (remoteHasData && (remoteTime > localTime || !localHasData)) {
+          const merged = mergeDatabase(currentDB, normalized, true);
           const calculated = calculatePoints(merged);
           saveDBLocal(calculated, true);
           return { db: calculated, updated: true };
         }
-
-        return { db: localDb, updated: false };
       }
     }
 
-    // 2. Secondary fallback only when Firestore is unavailable/offline
-    const [remoteServer, remoteAppsScript, remotePublicSheet] = await Promise.all([
-      fetchFromServer().catch(() => null),
-      fetchFromAppsScriptDirect().catch(() => null),
-      fetchPublicGoogleSheetData().catch(() => null)
-    ]);
+    // 2. Secondary: Express backend server
+    const serverDb = await fetchFromServer().catch(() => null);
+    if (serverDb && Array.isArray(serverDb.teams)) {
+      const localTime = Number(currentDB.lastModified || 0);
+      const remoteTime = Number(serverDb.lastModified || 0);
+      const localHasData = (currentDB.programs?.length || 0) > 0 || (currentDB.participants?.length || 0) > 0 || (currentDB.results?.length || 0) > 0;
+      const remoteHasData = (serverDb.programs?.length || 0) > 0 || (serverDb.participants?.length || 0) > 0 || (serverDb.results?.length || 0) > 0;
 
-    const validFallbacks = [remotePublicSheet, remoteAppsScript, remoteServer].filter((r): r is Database => {
-      if (!r || !Array.isArray(r.teams)) return false;
-      const remoteHasData = (r.programs?.length || 0) > 0 || (r.participants?.length || 0) > 0 || (r.results?.length || 0) > 0;
-      if (localHasData && !remoteHasData && !r.isExplicitReset) return false;
-      return true;
-    });
-
-    if (validFallbacks.length === 0) {
-      return { db: localDb, updated: false };
-    }
-
-    validFallbacks.sort((a, b) => (a.lastModified || 0) - (b.lastModified || 0));
-    let accumulator = localDb || defaultDB();
-    let hasRemoteUpdate = false;
-
-    for (const remote of validFallbacks) {
-      if (remote) {
-        const merged = mergeDatabase(accumulator, remote);
-        if (JSON.stringify(merged.results) !== JSON.stringify(accumulator.results) || 
-            JSON.stringify(merged.participants) !== JSON.stringify(accumulator.participants) ||
-            (remote.lastModified || 0) > (accumulator.lastModified || 0)) {
-          hasRemoteUpdate = true;
-        }
-        accumulator = merged;
+      if (remoteHasData && (remoteTime > localTime || !localHasData)) {
+        const merged = mergeDatabase(currentDB, serverDb, true);
+        const calculated = calculatePoints(merged);
+        saveDBLocal(calculated, true);
+        return { db: calculated, updated: true };
       }
     }
-
-    const calculated = calculatePoints(accumulator);
-    if (hasRemoteUpdate) {
-      saveDBLocal(calculated, true);
-    }
-
-    return { db: calculated, updated: hasRemoteUpdate };
-  } catch (e) {
-    console.error('syncDatabase error:', e);
-    return { db: localDb, updated: false };
+  } catch (err) {
+    console.warn('syncDatabase error:', err);
   }
-}
 
-
-export function calculatePoints(db: Database): Database {
-  const pts = db.settings.points;
-  const teamMap = new Map<string, number>();
-
-  db.teams.forEach(t => teamMap.set(t.id, 0));
-
-  const progMap = new Map(db.programs.map(p => [p.id, p]));
-
-  db.results.forEach(r => {
-    const prog = progMap.get(r.programId);
-    const isGeneralProg = prog?.categories.some(c => (c.gender as string) === 'General' || (c.age as string) === 'All' || (c.age as string) === 'General') || (r.gender as string) === 'General' || (r.age as string) === 'General' || (r.age as string) === 'All';
-
-    // Standard winners
-    ['first', 'second', 'third'].forEach(pos => {
-      const key = pos as 'first' | 'second' | 'third';
-      let points = pts[key];
-      if (isGeneralProg) {
-        if (key === 'first') points = pts.generalFirst ?? pts.first;
-        else if (key === 'second') points = pts.generalSecond ?? pts.second;
-        else if (key === 'third') points = pts.generalThird ?? pts.third;
-      }
-
-      (r.winners[key] || []).forEach(w => {
-        if (w.teamId && teamMap.has(w.teamId)) {
-          teamMap.set(w.teamId, teamMap.get(w.teamId)! + points);
-        }
-      });
-    });
-
-    // Grade entries
-    ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(gradeKey => {
-      const key = gradeKey as 'gradeA' | 'gradeB' | 'gradeC' | 'participation';
-      const points = pts[key];
-      (r.grades[key] || []).forEach(e => {
-        if (e.teamId && teamMap.has(e.teamId)) {
-          teamMap.set(e.teamId, teamMap.get(e.teamId)! + points);
-        }
-      });
-    });
-  });
-
-  const updatedTeams = db.teams.map(t => ({
-    ...t,
-    points: teamMap.get(t.id) || 0
-  }));
-
-  return {
-    ...db,
-    teams: updatedTeams
-  };
+  return { db: currentDB, updated: false };
 }

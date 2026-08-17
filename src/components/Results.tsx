@@ -117,8 +117,9 @@ export default function Results({ db }: ResultsProps) {
   programMap.forEach((resList, progId) => {
     const prog = db.programs.find(p => p.id === progId);
     if (prog) {
-      // Sort within program: Kids -> Sub Junior -> Junior -> Senior -> Super Senior -> General, Boys before Girls
-      const ageRank: Record<string, number> = { 'Kids': 1, 'Sub Junior': 2, 'Junior': 3, 'Senior': 4, 'Super Senior': 5, 'General': 6, 'All': 7 };
+      // Sort within program strictly in requested hierarchy:
+      // Junior (Boys, Girls) -> Senior (Boys, Girls) -> Super Senior (Boys, Girls) -> Kids (Boys, Girls) -> Sub Junior (Boys, Girls) -> General
+      const ageRank: Record<string, number> = { 'Junior': 1, 'Senior': 2, 'Super Senior': 3, 'Kids': 4, 'Sub Junior': 5, 'General': 6, 'All': 7 };
       const sorted = [...resList].sort((a, b) => {
         const rankA = ageRank[a.age] || 99;
         const rankB = ageRank[b.age] || 99;

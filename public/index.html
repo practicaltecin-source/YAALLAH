@@ -3,119 +3,119 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KALIMA 2K26 - Public Live Results</title>
+  <title>KALIMA 2K26 - Live Meelad Fest Results</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Cinzel:wght@700;900&display=swap');
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1510; color: #f1f5f9; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Cinzel:wght@700;800;900&family=Manjari:wght@400;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', 'Manjari', sans-serif; background-color: #060e0a; color: #f8fafc; }
     .font-cinzel { font-family: 'Cinzel', serif; }
-    .bg-pattern {
-      background-color: #0b1510;
-      background-image: radial-gradient(rgba(202, 138, 4, 0.08) 1px, transparent 1px);
-      background-size: 28px 28px;
+    .bg-mesh {
+      background-color: #060e0a;
+      background-image: radial-gradient(rgba(245, 158, 11, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
     }
   </style>
 </head>
-<body class="bg-pattern min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-black">
+<body class="bg-mesh min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-black">
 
   <!-- TOP HEADER -->
-  <header class="sticky top-0 z-40 bg-[#0e1d16]/90 backdrop-blur-md border-b border-amber-500/20 shadow-xl">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+  <header class="sticky top-0 z-40 bg-[#091510]/95 backdrop-blur-md border-b border-amber-500/20 shadow-2xl">
+    <div class="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-lg shadow-md shadow-amber-500/20">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20 shrink-0">
           🏆
         </div>
         <div>
-          <h1 id="event-title" class="font-cinzel font-black text-amber-300 text-sm sm:text-base tracking-wider uppercase">
+          <h1 id="header-title" class="font-cinzel font-black text-amber-300 text-sm sm:text-base md:text-lg tracking-wider uppercase">
             KALIMA 2K26 MEELAD FEST
           </h1>
-          <p id="event-subtitle" class="text-[11px] text-emerald-300/80 font-medium">
-            Live Official Results & Standings
+          <p id="header-subtitle" class="text-[11px] sm:text-xs text-emerald-300/80 font-medium">
+            Live Official Competition Results & Standings
           </p>
         </div>
       </div>
 
-      <!-- Sync Status & Refresh -->
+      <!-- Sync Status & Manual Refresh -->
       <div class="flex items-center gap-2">
-        <span id="sync-badge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Sync
+        <span id="live-indicator" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-950/90 text-emerald-300 border border-emerald-500/40">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Results
         </span>
-        <button id="btn-refresh" onclick="fetchLiveData(true)" class="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5">
+        <button id="btn-refresh" onclick="fetchResults(true)" class="px-3.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer">
           <i class="fa-solid fa-rotate text-xs"></i> <span>Refresh</span>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- MAIN CONTAINER -->
-  <main class="max-w-6xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+  <!-- MAIN WRAPPER -->
+  <main class="max-w-5xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
-    <!-- TEAMS SCOREBOARD PODIUM / CARDS -->
-    <section id="section-scoreboard" class="bg-[#12231b] border border-amber-500/20 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4">
+    <!-- TEAMS LEADERBOARD -->
+    <section class="bg-[#0e1d16] border border-amber-500/25 rounded-3xl p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-amber-500/15 pb-3">
-        <h2 class="text-xs font-extrabold uppercase tracking-widest text-amber-400 flex items-center gap-2">
-          <i class="fa-solid fa-chart-simple"></i> Team Standings (Scoreboard)
+        <h2 class="text-xs font-black uppercase tracking-widest text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-ranking-star text-amber-400"></i> Team Standings (Scoreboard)
         </h2>
-        <span id="total-results-count" class="text-[11px] font-mono text-emerald-300 bg-emerald-950 px-2 py-0.5 rounded-lg border border-emerald-500/30">
-          0 Results Published
+        <span id="results-count-badge" class="text-[11px] font-mono text-emerald-300 bg-emerald-950 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
+          0 Published Results
         </span>
       </div>
 
-      <div id="teams-container" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <!-- Teams dynamically loaded -->
-        <div class="animate-pulse bg-slate-900/60 p-4 rounded-2xl border border-slate-800 text-center">Loading teams...</div>
+      <div id="teams-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <!-- Teams populated here -->
+        <div class="col-span-4 text-center py-4 text-xs text-slate-500 animate-pulse">Loading team scores...</div>
       </div>
     </section>
 
-    <!-- SEARCH & FILTER BAR -->
-    <section class="bg-[#12231b] border border-amber-500/20 rounded-2xl p-4 shadow-lg space-y-3">
+    <!-- SEARCH & CATEGORY FILTER BAR -->
+    <section class="bg-[#0e1d16] border border-amber-500/20 rounded-2xl p-4 shadow-lg space-y-3">
       <div class="flex flex-col sm:flex-row gap-3">
         <div class="relative flex-1">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm"></i>
           <input 
             type="text" 
             id="search-input" 
-            placeholder="Search by Competition, Winner Name, or Team..." 
-            oninput="handleFilterChange()"
-            class="w-full bg-[#0a1611] border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition-colors"
+            placeholder="Search by Competition (e.g. മിനിക്കഥ), Student, or Team..." 
+            oninput="renderStack()"
+            class="w-full bg-[#07110c] border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition-colors"
           />
         </div>
 
         <div class="flex gap-2 shrink-0">
-          <select id="filter-gender" onchange="handleFilterChange()" class="bg-[#0a1611] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-400">
-            <option value="All">All Sections (Boys & Girls)</option>
-            <option value="Boys">👦 Boys Section Only</option>
-            <option value="Girls">👧 Girls Section Only</option>
-            <option value="General">👥 General / Group Only</option>
+          <select id="filter-category" onchange="renderStack()" class="bg-[#07110c] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-400">
+            <option value="All">All Categories</option>
+            <option value="Junior">Junior</option>
+            <option value="Senior">Senior</option>
+            <option value="Super Senior">Super Senior</option>
+            <option value="Kids">Kids</option>
+            <option value="Sub Junior">Sub Junior</option>
+            <option value="General">General</option>
           </select>
 
-          <select id="filter-category" onchange="handleFilterChange()" class="bg-[#0a1611] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-400">
-            <option value="All">All Age Categories</option>
-            <option value="Kids">🧒 Kids (Class 1-2)</option>
-            <option value="Sub Junior">🎒 Sub-Junior (Class 3-4)</option>
-            <option value="Junior">⭐ Junior (Class 5-6)</option>
-            <option value="Senior">🔥 Senior (Class 7-8)</option>
-            <option value="Super Senior">🎓 Super Senior (Class 9-12)</option>
-            <option value="General">🌐 General Category</option>
+          <select id="filter-gender" onchange="renderStack()" class="bg-[#07110c] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-400">
+            <option value="All">All Genders</option>
+            <option value="Boys">Boys (ആൺകുട്ടികൾ)</option>
+            <option value="Girls">Girls (പെൺകുട്ടികൾ)</option>
           </select>
         </div>
       </div>
     </section>
 
-    <!-- HIERARCHICAL PUBLISHED RESULTS VIEW -->
+    <!-- STRICT VERTICAL SECTION STACK FOR RESULTS -->
     <section class="space-y-4">
       <div class="flex items-center justify-between px-1">
-        <h3 class="font-extrabold text-sm uppercase tracking-wider text-amber-300 flex items-center gap-2">
-          <i class="fa-solid fa-trophy text-amber-400"></i> Official Competition Results
+        <h3 class="font-black text-sm uppercase tracking-wider text-amber-300 flex items-center gap-2">
+          <i class="fa-solid fa-award text-amber-400"></i> Official Competition Results
         </h3>
-        <span id="filtered-count" class="text-xs text-slate-400">Showing all</span>
+        <span id="stack-count" class="text-xs text-slate-400">Showing all sections</span>
       </div>
 
-      <!-- Results Container (Hierarchical Block-by-Block Format) -->
-      <div id="results-hierarchy-container" class="space-y-5">
-        <div class="text-center py-12 bg-[#12231b]/50 rounded-3xl border border-slate-800">
-          <i class="fa-solid fa-spinner fa-spin text-2xl text-amber-400 mb-2"></i>
+      <!-- Vertical Section Stack Container -->
+      <div id="vertical-stack-container" class="space-y-4">
+        <!-- Vertical blocks rendered strictly in ordered stack -->
+        <div class="text-center py-16 bg-[#0e1d16]/60 rounded-3xl border border-slate-800 space-y-2">
+          <i class="fa-solid fa-spinner fa-spin text-2xl text-amber-400"></i>
           <p class="text-xs text-slate-400">Loading competition results...</p>
         </div>
       </div>
@@ -124,48 +124,55 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="bg-[#0e1d16] border-t border-slate-800 text-center py-4 px-4 text-xs text-slate-400">
-    <p><span class="font-cinzel font-bold text-amber-400">KALIMA 2K26 MEELAD FEST</span> &bull; Real-time Synchronization Active</p>
+  <footer class="bg-[#091510] border-t border-slate-800 text-center py-5 px-4 text-xs text-slate-500">
+    <p><span class="font-cinzel font-bold text-amber-400">KALIMA 2K26 MEELAD FEST</span> &bull; Real-time LockService Sync</p>
   </footer>
 
   <!-- SCRIPT LOGIC -->
   <script>
-    // Config: Apps Script Web App URL (can be customized or read from localStorage)
-    const APPS_SCRIPT_URL_KEY = 'mrms_apps_script_url';
-    let appsScriptUrl = localStorage.getItem(APPS_SCRIPT_URL_KEY) || '';
+    const APPS_SCRIPT_KEY = 'mrms_apps_script_url';
+    let appsScriptUrl = localStorage.getItem(APPS_SCRIPT_KEY) || '';
 
     let localDb = {
       teams: [],
       programs: [],
-      participants: [],
       results: [],
       settings: {
         eventName: 'KALIMA 2K26 MEELAD FEST',
-        boardName: 'LIVE SCOREBOARD',
         subtitle: 'Live Competition Results, Scoring Points & Schedules'
       }
     };
 
-    // Category display order & definitions
-    const CATEGORIES = ['Kids', 'Sub Junior', 'Junior', 'Senior', 'Super Senior', 'General'];
-    const CATEGORY_NAMES = {
-      'Kids': '🧒 Kids Category (Class 1-2)',
-      'Sub Junior': '🎒 Sub-Junior Category (Class 3-4)',
-      'Junior': '⭐ Junior Category (Class 5-6)',
-      'Senior': '🔥 Senior Category (Class 7-8)',
-      'Super Senior': '🎓 Super Senior Category (Class 9-12)',
-      'General': '🌐 General Category (Open)',
-      'All': '🌐 All Classes'
-    };
+    // Strict Ordering Hierarchy requested:
+    // 1. Junior - Boys
+    // 2. Junior - Girls
+    // 3. Senior - Boys
+    // 4. Senior - Girls
+    // 5. Super Senior - Boys
+    // 6. Super Senior - Girls
+    // Followed by Kids, Sub Junior, and General
+    const HIERARCHY_ORDER = [
+      { age: 'Junior', gender: 'Boys', label: 'Junior - Boys (ജൂനിയർ ആൺകുട്ടികൾ)', color: 'border-sky-500/40 bg-sky-950/20 text-sky-300' },
+      { age: 'Junior', gender: 'Girls', label: 'Junior - Girls (ജൂനിയർ പെൺകുട്ടികൾ)', color: 'border-fuchsia-500/40 bg-fuchsia-950/20 text-fuchsia-300' },
+      { age: 'Senior', gender: 'Boys', label: 'Senior - Boys (സീനിയർ ആൺകുട്ടികൾ)', color: 'border-blue-500/40 bg-blue-950/20 text-blue-300' },
+      { age: 'Senior', gender: 'Girls', label: 'Senior - Girls (സീനിയർ പെൺകുട്ടികൾ)', color: 'border-pink-500/40 bg-pink-950/20 text-pink-300' },
+      { age: 'Super Senior', gender: 'Boys', label: 'Super Senior - Boys (സൂപ്പർ സീനിയർ ആൺകുട്ടികൾ)', color: 'border-indigo-500/40 bg-indigo-950/20 text-indigo-300' },
+      { age: 'Super Senior', gender: 'Girls', label: 'Super Senior - Girls (സൂപ്പർ സീനിയർ പെൺകുട്ടികൾ)', color: 'border-purple-500/40 bg-purple-950/20 text-purple-300' },
+      { age: 'Kids', gender: 'Boys', label: 'Kids - Boys (കിഡ്സ് ആൺകുട്ടികൾ)', color: 'border-amber-500/40 bg-amber-950/20 text-amber-300' },
+      { age: 'Kids', gender: 'Girls', label: 'Kids - Girls (കിഡ്സ് പെൺകുട്ടികൾ)', color: 'border-rose-500/40 bg-rose-950/20 text-rose-300' },
+      { age: 'Sub Junior', gender: 'Boys', label: 'Sub Junior - Boys (സബ് ജൂനിയർ ആൺകുട്ടികൾ)', color: 'border-teal-500/40 bg-teal-950/20 text-teal-300' },
+      { age: 'Sub Junior', gender: 'Girls', label: 'Sub Junior - Girls (സബ് ജൂനിയർ പെൺകുട്ടികൾ)', color: 'border-cyan-500/40 bg-cyan-950/20 text-cyan-300' },
+      { age: 'General', gender: 'General', label: 'General / Group Section (പൊതു വിഭാഗം)', color: 'border-emerald-500/40 bg-emerald-950/20 text-emerald-300' }
+    ];
 
-    async function fetchLiveData(showFeedback = false) {
-      const btnRefresh = document.getElementById('btn-refresh');
-      if (btnRefresh && showFeedback) {
-        btnRefresh.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>Syncing...</span>';
+    async function fetchResults(isManual = false) {
+      const btn = document.getElementById('btn-refresh');
+      if (btn && isManual) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>Syncing...</span>';
       }
 
       try {
-        // Try local storage first for instant rendering
+        // Read local storage cache first
         const cached = localStorage.getItem('fest_portal_db_v1');
         if (cached) {
           try {
@@ -174,12 +181,12 @@
               localDb = parsed;
               renderUI();
             }
-          } catch(e) {}
+          } catch (e) {}
         }
 
-        // Fetch from Google Apps Script Web App if URL is set
+        // Fetch from Apps Script Web App
         if (appsScriptUrl) {
-          const res = await fetch(appsScriptUrl + (appsScriptUrl.includes('?') ? '&' : '?') + 'action=read&t=' + Date.now());
+          const res = await fetch(appsScriptUrl + (appsScriptUrl.includes('?') ? '&' : '?') + 'action=read&_t=' + Date.now());
           const json = await res.json();
           if (json && json.status === 'success' && json.db) {
             localDb = json.db;
@@ -188,55 +195,54 @@
           }
         }
       } catch (err) {
-        console.warn('Sync warning:', err);
+        console.warn('Sync issue:', err);
       } finally {
-        if (btnRefresh) {
-          btnRefresh.innerHTML = '<i class="fa-solid fa-rotate text-xs"></i> <span>Refresh</span>';
+        if (btn) {
+          btn.innerHTML = '<i class="fa-solid fa-rotate text-xs"></i> <span>Refresh</span>';
         }
       }
     }
 
     function renderUI() {
-      // 1. Update Title & Subtitle
+      // 1. Header
       if (localDb.settings) {
-        if (localDb.settings.eventName) document.getElementById('event-title').innerText = localDb.settings.eventName;
-        if (localDb.settings.subtitle) document.getElementById('event-subtitle').innerText = localDb.settings.subtitle;
+        if (localDb.settings.eventName) document.getElementById('header-title').innerText = localDb.settings.eventName;
+        if (localDb.settings.subtitle) document.getElementById('header-subtitle').innerText = localDb.settings.subtitle;
       }
 
-      // 2. Render Scoreboard
+      // 2. Scoreboard
       renderScoreboard();
 
-      // 3. Render Hierarchical Results
-      renderHierarchicalResults();
+      // 3. Vertical Stack
+      renderStack();
     }
 
     function renderScoreboard() {
-      const container = document.getElementById('teams-container');
+      const grid = document.getElementById('teams-grid');
       const teams = localDb.teams || [];
-      document.getElementById('total-results-count').innerText = (localDb.results?.length || 0) + ' Results Published';
+      document.getElementById('results-count-badge').innerText = (localDb.results?.length || 0) + ' Published Results';
 
       if (!teams.length) {
-        container.innerHTML = '<div class="col-span-4 text-center text-xs text-slate-500 py-4">No team data available</div>';
+        grid.innerHTML = '<div class="col-span-4 text-center text-xs text-slate-500 py-3">No teams data available</div>';
         return;
       }
 
-      // Sort teams descending by points
-      const sortedTeams = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0));
+      const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0));
 
-      container.innerHTML = sortedTeams.map((t, idx) => {
+      grid.innerHTML = sorted.map((t, idx) => {
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-        const borderClass = idx === 0 ? 'border-amber-400/60 bg-amber-500/10' : 'border-slate-800 bg-[#0a1611]';
+        const isLeader = idx === 0;
         return `
-          <div class="p-3 rounded-2xl border ${borderClass} shadow-md flex items-center justify-between gap-2">
+          <div class="p-3.5 rounded-2xl border ${isLeader ? 'border-amber-400/70 bg-gradient-to-br from-amber-500/20 to-[#0e1d16]' : 'border-slate-800 bg-[#07110c]'} shadow-md flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="text-sm font-black">${medal}</span>
+              <span class="text-base font-black">${medal}</span>
               <div class="min-w-0">
-                <p class="font-extrabold text-xs text-white truncate">${t.name}</p>
+                <p class="font-extrabold text-xs sm:text-sm text-white truncate">${t.name}</p>
                 <p class="text-[10px] text-slate-400 truncate">${t.captain ? 'Capt: ' + t.captain : 'Team ' + (t.symbol || '')}</p>
               </div>
             </div>
             <div class="text-right shrink-0">
-              <span class="font-mono font-black text-amber-300 text-sm md:text-base">${t.points || 0}</span>
+              <span class="font-mono font-black text-amber-300 text-sm sm:text-base">${t.points || 0}</span>
               <span class="text-[9px] text-slate-400 block -mt-1 font-bold">PTS</span>
             </div>
           </div>
@@ -244,15 +250,11 @@
       }).join('');
     }
 
-    function handleFilterChange() {
-      renderHierarchicalResults();
-    }
-
-    function renderHierarchicalResults() {
-      const container = document.getElementById('results-hierarchy-container');
+    function renderStack() {
+      const container = document.getElementById('vertical-stack-container');
       const search = (document.getElementById('search-input').value || '').toLowerCase().trim();
-      const filterGender = document.getElementById('filter-gender').value;
-      const filterCategory = document.getElementById('filter-category').value;
+      const filterCat = document.getElementById('filter-category').value;
+      const filterGen = document.getElementById('filter-gender').value;
 
       const programs = localDb.programs || [];
       const results = localDb.results || [];
@@ -260,189 +262,150 @@
       const teamMap = {};
       teams.forEach(t => { teamMap[t.id] = t.name; });
 
-      // Group all results by Program ID
+      // Group all results by programId
       const progResultsMap = new Map();
-      results.forEach(res => {
-        const list = progResultsMap.get(res.programId) || [];
-        list.push(res);
-        progResultsMap.set(res.programId, list);
+      results.forEach(r => {
+        const list = progResultsMap.get(r.programId) || [];
+        list.push(r);
+        progResultsMap.set(r.programId, list);
       });
 
-      // Filter and build program blocks
-      const renderedBlocks = [];
+      const stackBlocks = [];
 
+      // Loop through each competition
       programs.forEach(prog => {
         const progResults = progResultsMap.get(prog.id) || [];
-        if (progResults.length === 0) return; // Skip programs with 0 published results
+        if (progResults.length === 0) return;
 
-        // Check if any results match active filters
-        const matchingResults = progResults.filter(r => {
-          if (filterGender !== 'All' && r.gender !== filterGender) return false;
-          if (filterCategory !== 'All' && r.age !== filterCategory) return false;
-          
+        // Iterate through strict hierarchy ordering
+        HIERARCHY_ORDER.forEach(orderSpec => {
+          // Find matching result for this exact Category and Gender
+          const matchedResult = progResults.find(r => {
+            const catMatch = r.age === orderSpec.age || (orderSpec.age === 'General' && (r.age === 'All' || r.age === 'General'));
+            const genMatch = r.gender === orderSpec.gender;
+            return catMatch && genMatch;
+          });
+
+          if (!matchedResult) return; // Skip if this category-gender section doesn't exist for this competition
+
+          // Apply filters
+          if (filterCat !== 'All' && matchedResult.age !== filterCat) return;
+          if (filterGen !== 'All' && matchedResult.gender !== filterGen) return;
+
+          // Apply Search
           if (search) {
-            const matchesProg = prog.name.toLowerCase().includes(search) || (prog.code && prog.code.toLowerCase().includes(search));
-            const checkWinner = (arr) => (arr || []).some(w => 
+            const compMatches = (prog.name && prog.name.toLowerCase().includes(search)) || (prog.code && prog.code.toLowerCase().includes(search));
+            const checkWinnerMatch = (list) => (list || []).some(w => 
               (w.name && w.name.toLowerCase().includes(search)) || 
               (w.teamId && teamMap[w.teamId] && teamMap[w.teamId].toLowerCase().includes(search))
             );
-            const matchesWinner = checkWinner(r.winners?.first) || checkWinner(r.winners?.second) || checkWinner(r.winners?.third);
-            if (!matchesProg && !matchesWinner) return false;
+            const winnerMatches = checkWinnerMatch(matchedResult.winners?.first) || 
+                                 checkWinnerMatch(matchedResult.winners?.second) || 
+                                 checkWinnerMatch(matchedResult.winners?.third);
+
+            if (!compMatches && !winnerMatches) return;
           }
-          return true;
-        });
 
-        if (matchingResults.length === 0) return;
+          // Build Vertical Section Stack Block
+          const blockHtml = `
+            <div class="bg-[#0e1d16] border border-amber-500/25 rounded-3xl p-5 shadow-xl transition-all hover:border-amber-500/40 space-y-4">
+              <!-- Header with Competition Name and Category-Gender Badge -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="px-2.5 py-1 bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-mono font-black text-xs rounded-xl shrink-0">
+                    ${prog.code || 'COMP'}
+                  </span>
+                  <h4 class="font-extrabold text-sm sm:text-base text-white truncate">
+                    ${prog.name}
+                  </h4>
+                </div>
 
-        // Group by Age Category
-        const catsMap = new Map();
-        CATEGORIES.forEach(c => catsMap.set(c, []));
-        catsMap.set('All', []);
-
-        matchingResults.forEach(r => {
-          const catKey = r.age || 'General';
-          const list = catsMap.get(catKey) || [];
-          list.push(r);
-          catsMap.set(catKey, list);
-        });
-
-        // Build HTML for each Category Block
-        let categoriesHtml = '';
-
-        catsMap.forEach((catResults, catName) => {
-          if (catResults.length === 0) return;
-
-          const boysRes = catResults.filter(r => r.gender === 'Boys');
-          const girlsRes = catResults.filter(r => r.gender === 'Girls');
-          const genRes = catResults.filter(r => r.gender === 'General');
-
-          categoriesHtml += `
-            <div class="mt-3 pt-3 border-t border-slate-800/80">
-              <div class="flex items-center gap-2 mb-2.5">
-                <span class="px-2.5 py-0.5 rounded-md text-[11px] font-black bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  ${CATEGORY_NAMES[catName] || catName}
-                </span>
+                <!-- Distinct Category - Gender Badge -->
+                <div class="self-start sm:self-auto">
+                  <span class="px-3 py-1 rounded-xl text-xs font-black border ${orderSpec.color} flex items-center gap-1.5 shadow-sm">
+                    <span>${orderSpec.gender === 'Boys' ? '👦' : orderSpec.gender === 'Girls' ? '👧' : '👥'}</span>
+                    <span>${orderSpec.label}</span>
+                  </span>
+                </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <!-- Boys Section -->
-                ${boysRes.length > 0 ? `
-                  <div class="bg-[#0a1611] border border-sky-500/30 rounded-2xl p-3.5 space-y-2">
-                    <div class="flex items-center justify-between pb-1.5 border-b border-sky-500/20 text-xs font-bold text-sky-400">
-                      <span>👦 Boys Section (ആൺകുട്ടികൾ)</span>
-                      <span class="text-[10px] bg-sky-950 px-2 py-0.5 rounded-full border border-sky-500/30 font-mono">1st, 2nd, 3rd</span>
-                    </div>
-                    ${renderWinnersList(boysRes[0]?.winners, teamMap)}
-                  </div>
-                ` : ''}
-
-                <!-- Girls Section -->
-                ${girlsRes.length > 0 ? `
-                  <div class="bg-[#0a1611] border border-fuchsia-500/30 rounded-2xl p-3.5 space-y-2">
-                    <div class="flex items-center justify-between pb-1.5 border-b border-fuchsia-500/20 text-xs font-bold text-fuchsia-400">
-                      <span>👧 Girls Section (പെൺകുട്ടികൾ)</span>
-                      <span class="text-[10px] bg-fuchsia-950 px-2 py-0.5 rounded-full border border-fuchsia-500/30 font-mono">1st, 2nd, 3rd</span>
-                    </div>
-                    ${renderWinnersList(girlsRes[0]?.winners, teamMap)}
-                  </div>
-                ` : ''}
-
-                <!-- General / Group Section (if any) -->
-                ${genRes.length > 0 ? `
-                  <div class="bg-[#0a1611] border border-emerald-500/30 rounded-2xl p-3.5 space-y-2 md:col-span-2">
-                    <div class="flex items-center justify-between pb-1.5 border-b border-emerald-500/20 text-xs font-bold text-emerald-400">
-                      <span>👥 General / Group Section</span>
-                      <span class="text-[10px] bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono">1st, 2nd, 3rd</span>
-                    </div>
-                    ${renderWinnersList(genRes[0]?.winners, teamMap)}
-                  </div>
-                ` : ''}
+              <!-- Winners Vertical Podium (1st, 2nd, 3rd with Name, Team & Points) -->
+              <div class="space-y-2.5">
+                ${renderPodiumRows(matchedResult.winners, teamMap)}
               </div>
             </div>
           `;
+
+          stackBlocks.push(blockHtml);
         });
-
-        renderedBlocks.push(`
-          <div class="bg-[#12231b] border border-amber-500/20 rounded-3xl p-5 shadow-xl transition-all hover:border-amber-500/40">
-            <!-- Program Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div class="flex items-center gap-2.5">
-                <span class="px-2.5 py-1 bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-mono font-black text-xs rounded-xl">
-                  ${prog.code || 'CODE'}
-                </span>
-                <h4 class="font-extrabold text-base text-white tracking-wide">
-                  ${prog.name}
-                </h4>
-              </div>
-              <span class="text-[10px] text-slate-400 font-semibold self-start sm:self-auto bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
-                ${prog.stageType || 'Main Stage'} &bull; ${prog.venue || 'Stage 1'}
-              </span>
-            </div>
-
-            <!-- Categories and Gender Blocks -->
-            ${categoriesHtml}
-          </div>
-        `);
       });
 
-      if (renderedBlocks.length === 0) {
+      if (stackBlocks.length === 0) {
         container.innerHTML = `
-          <div class="text-center py-12 bg-[#12231b]/40 rounded-3xl border border-slate-800/80 p-6 space-y-2">
-            <p class="text-2xl">🔍</p>
-            <p class="text-xs font-bold text-slate-300">No published results match your search or filter</p>
-            <p class="text-[11px] text-slate-500">Try changing or clearing your search term</p>
+          <div class="text-center py-16 bg-[#0e1d16]/50 rounded-3xl border border-slate-800/80 p-6 space-y-2">
+            <p class="text-3xl">🔍</p>
+            <p class="text-xs sm:text-sm font-bold text-slate-300">No competition results match your search / filter</p>
+            <p class="text-[11px] text-slate-500">Please adjust or clear your filter criteria</p>
           </div>
         `;
       } else {
-        container.innerHTML = renderedBlocks.join('');
+        container.innerHTML = stackBlocks.join('');
       }
 
-      document.getElementById('filtered-count').innerText = `Showing ${renderedBlocks.length} competition(s)`;
+      document.getElementById('stack-count').innerText = `Showing ${stackBlocks.length} result block(s)`;
     }
 
-    function renderWinnersList(winners, teamMap) {
-      if (!winners) return '<p class="text-xs text-slate-500">No winners declared</p>';
+    function renderPodiumRows(winners, teamMap) {
+      if (!winners) return '<p class="text-xs text-slate-500 italic">No winners declared</p>';
 
-      const positions = [
-        { key: 'first', label: '1st Place', icon: '🥇', color: 'text-amber-300', bg: 'bg-amber-500/10 border-amber-500/20' },
-        { key: 'second', label: '2nd Place', icon: '🥈', color: 'text-slate-300', bg: 'bg-slate-500/10 border-slate-500/20' },
-        { key: 'third', label: '3rd Place', icon: '🥉', color: 'text-amber-600', bg: 'bg-amber-700/10 border-amber-700/20' }
+      const ranks = [
+        { key: 'first', label: '1st Place', icon: '🥇', pts: 10, border: 'border-amber-500/30 bg-amber-500/10 text-amber-300' },
+        { key: 'second', label: '2nd Place', icon: '🥈', pts: 7, border: 'border-slate-500/30 bg-slate-500/10 text-slate-300' },
+        { key: 'third', label: '3rd Place', icon: '🥉', pts: 5, border: 'border-amber-800/30 bg-amber-800/10 text-amber-500' }
       ];
 
-      return positions.map(pos => {
-        const entries = winners[pos.key] || [];
-        if (entries.length === 0) {
+      return ranks.map(rank => {
+        const list = winners[rank.key] || [];
+        if (list.length === 0) {
           return `
-            <div class="flex items-center justify-between text-xs py-1 px-2.5 rounded-xl ${pos.bg} border opacity-50">
-              <span class="flex items-center gap-1.5 font-bold ${pos.color}">${pos.icon} ${pos.label}</span>
-              <span class="text-[11px] text-slate-500 italic">— Not declared —</span>
+            <div class="flex items-center justify-between text-xs py-2 px-3 rounded-2xl ${rank.border} border opacity-40">
+              <span class="flex items-center gap-2 font-bold">${rank.icon} ${rank.label}</span>
+              <span class="text-[11px] text-slate-500 italic">— Not Declared —</span>
             </div>
           `;
         }
 
-        return entries.map(w => {
-          const tName = w.teamId ? (teamMap[w.teamId] || w.teamId) : 'Independent';
+        return list.map(w => {
+          const tName = w.teamId ? (teamMap[w.teamId] || w.teamId) : 'Independent / Single';
+          const assignedPts = w.points !== undefined ? w.points : rank.pts;
           return `
-            <div class="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl ${pos.bg} border">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="text-sm shrink-0">${pos.icon}</span>
+            <div class="flex items-center justify-between text-xs py-2.5 px-3.5 rounded-2xl ${rank.border} border shadow-sm">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="text-base sm:text-lg shrink-0">${rank.icon}</span>
                 <div class="min-w-0">
-                  <p class="font-extrabold text-xs text-white truncate">${w.name || 'Unknown'}</p>
-                  <p class="text-[10px] text-amber-200/80 font-medium truncate">${tName}</p>
+                  <p class="font-extrabold text-xs sm:text-sm text-white truncate">${w.name || 'Unknown'}</p>
+                  <p class="text-[11px] text-amber-200/90 font-medium truncate">${tName}</p>
                 </div>
               </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/40 text-amber-300 font-mono shrink-0 ml-2">
-                ${pos.label}
-              </span>
+
+              <!-- Points & Rank Badge -->
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="px-2.5 py-1 bg-black/50 border border-white/10 rounded-xl font-mono font-black text-amber-300 text-xs">
+                  ${assignedPts} PTS
+                </span>
+                <span class="hidden sm:inline-block px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                  ${rank.label}
+                </span>
+              </div>
             </div>
           `;
         }).join('');
       }).join('');
     }
 
-    // Auto sync on page load and periodically every 15 seconds
-    fetchLiveData();
-    setInterval(() => fetchLiveData(false), 15000);
+    // Auto-fetch on boot and periodic polling every 15s
+    fetchResults();
+    setInterval(() => fetchResults(false), 15000);
   </script>
 </body>
 </html>

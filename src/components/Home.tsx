@@ -1146,13 +1146,13 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
         )}
       </div>
 
-      {/* Latest Results Segment */}
+      {/* Latest Results Segment - Matching exact Vertical Stack Layout from screenshot */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-brand-gold-500" />
-            <h2 className="font-display font-bold text-brand-green-900 text-sm md:text-base">
-              Latest Competition Results
+            <h2 className="font-display font-bold text-brand-green-900 text-sm md:text-base flex items-center gap-2">
+              <span>📌</span> Latest Competition Results
             </h2>
           </div>
           {db.results.length > 3 && (
@@ -1174,106 +1174,82 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
             </p>
           </div>
         ) : (
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             {latestResults.map(r => {
               const prog = db.programs.find(p => p.id === r.programId);
-              const tagClass = r.gender === 'Boys' ? 'bg-sky-50 text-sky-700' : r.gender === 'Girls' ? 'bg-pink-50 text-pink-700' : 'bg-emerald-50 text-emerald-700';
+              const isGeneralProg = prog?.categories?.some(c => (c.gender as string) === 'General' || (c.age as string) === 'All' || (c.age as string) === 'General') || (r.gender as string) === 'General' || (r.age as string) === 'General' || (r.age as string) === 'All';
+
+              const categoryLabel = (r.age as string) === 'All' || (r.age as string) === 'General' 
+                ? (r.gender === 'General' ? 'General' : r.gender)
+                : `${r.age} - ${r.gender}`;
 
               return (
-                <div key={r.id} className="bg-brand-panel border border-brand-line rounded-xl p-4 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="min-w-0">
-                      <span className="font-mono text-[9px] font-extrabold bg-brand-green-100 text-brand-green-800 px-2 py-0.5 rounded">
-                        {prog?.code || '—'}
+                <div key={r.id} className="bg-[#fffef7] border border-amber-200/80 rounded-2xl p-3.5 shadow-sm space-y-2.5 hover:shadow-md transition-shadow">
+                  {/* Category Pin Badge matching screenshot */}
+                  <div className="flex items-center justify-between gap-2 border-b border-amber-100 pb-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100/90 text-amber-950 border border-amber-300/80 shadow-xs">
+                        <span>📌</span> {categoryLabel}
                       </span>
-                      <h3 className="font-semibold text-xs md:text-sm text-brand-ink mt-1 truncate">
-                        {prog?.name || 'Untitled Program'}
-                      </h3>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${tagClass}`}>
-                          {GENDER_ICONS[r.gender] || ''} {r.gender}
+                      {prog && (
+                        <span className="font-mono text-[10px] font-extrabold bg-brand-green-100 text-brand-green-900 px-2 py-0.5 rounded border border-brand-green-200">
+                          {prog.code} &bull; {prog.name}
                         </span>
-                        {r.age !== 'All' && (
-                          <span className="text-[9px] font-bold bg-brand-gold-100 text-brand-gold-700 px-2 py-0.5 rounded-full">
-                            {AGE_ICONS[r.age] || ''} {r.age}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
+                    <span className="text-[9px] text-slate-400 font-mono">
+                      {new Date(r.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
 
-                  {/* Top Winners list */}
-                  <div className="space-y-1.5 bg-brand-bg/50 p-2.5 rounded-lg border border-brand-line/50">
-                    {(() => {
-                      const prog = db.programs.find(p => p.id === r.programId);
-                      const isGeneralProg = prog?.categories.some(c => (c.gender as string) === 'General' || (c.age as string) === 'All' || (c.age as string) === 'General') || (r.gender as string) === 'General' || (r.age as string) === 'General' || (r.age as string) === 'All';
+                  {/* Top Winners matching exact screenshot layout: Medal + Student Name (Class) + Team Code + Points */}
+                  <div className="space-y-1.5">
+                    {['first', 'second', 'third'].map(pos => {
+                      const key = pos as 'first' | 'second' | 'third';
+                      const medal = key === 'first' ? '🥇' : key === 'second' ? '🥈' : '🥉';
+                      const entries = r.winners[key] || [];
 
-                      return ['first', 'second', 'third'].map(pos => {
-                        const key = pos as 'first' | 'second' | 'third';
-                        const medal = key === 'first' ? '🥇' : key === 'second' ? '🥈' : '🥉';
-                        const entries = r.winners[key] || [];
+                      let winPts = db.settings.points[key];
+                      if (isGeneralProg) {
+                        if (key === 'first') winPts = db.settings.points.generalFirst ?? db.settings.points.first;
+                        else if (key === 'second') winPts = db.settings.points.generalSecond ?? db.settings.points.second;
+                        else if (key === 'third') winPts = db.settings.points.generalThird ?? db.settings.points.third;
+                      }
 
-                        let winPts = db.settings.points[key];
-                        if (isGeneralProg) {
-                          if (key === 'first') winPts = db.settings.points.generalFirst ?? db.settings.points.first;
-                          else if (key === 'second') winPts = db.settings.points.generalSecond ?? db.settings.points.second;
-                          else if (key === 'third') winPts = db.settings.points.generalThird ?? db.settings.points.third;
-                        }
+                      return entries.map((winner, winIndex) => {
+                        const team = db.teams.find(t => t.id === winner.teamId);
+                        const clsInfo = getCandidateClassInfo(winner.name, winner.teamId);
+                        const customPts = (winner as any).points;
+                        const assignedPts = customPts !== undefined ? customPts : winPts;
 
-                        return entries.map((winner, winIndex) => {
-                          const team = db.teams.find(t => t.id === winner.teamId);
-                          const clsInfo = getCandidateClassInfo(winner.name, winner.teamId);
-                          return (
-                            <div key={key + winIndex} className="flex items-center justify-between text-xs py-0.5">
-                              <span className="shrink-0 w-5 text-center">{medal}</span>
-                              <b className="flex-1 text-brand-ink truncate ml-1 font-semibold">
-                                {winner.name}
-                                {clsInfo && <span className="text-[9px] text-brand-ink-soft ml-1">({clsInfo})</span>}
-                              </b>
-                              <span className="text-[9px] text-brand-ink-soft mr-2 shrink-0">
-                                {team ? team.name : ''}
+                        return (
+                          <div key={key + winIndex} className="flex items-center justify-between text-xs py-1 px-1.5 rounded-lg hover:bg-amber-50/50 transition-colors">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="shrink-0 text-base">{medal}</span>
+                              <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
+                                <b className="text-slate-900 uppercase font-black text-xs tracking-tight">
+                                  {winner.name}
+                                </b>
+                                {clsInfo && (
+                                  <span className="text-[11px] text-slate-600 font-bold">
+                                    ({clsInfo})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0 ml-2">
+                              <span className="text-[11px] font-bold text-slate-700 tracking-wide">
+                                {team ? `${team.symbol || ''} ${team.name}` : '—'}
                               </span>
-                              <span className="font-mono text-[10px] font-bold text-brand-gold-700 shrink-0">
-                                +{winPts}
+                              <span className="font-mono text-xs font-black text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md min-w-[42px] text-center">
+                                +{assignedPts}
                               </span>
                             </div>
-                          );
-                        });
-                      });
-                    })()}
-
-                    {/* Grades list */}
-                    {r.grades && Object.entries(r.grades).map(([gradeKey, list]) => {
-                      const key = gradeKey as keyof typeof r.grades;
-                      const icon = key === 'gradeA' ? '🅰️' : key === 'gradeB' ? '🅱️' : key === 'gradeC' ? '🅲' : '🎗️';
-                      const label = key === 'gradeA' ? 'Grade A' : key === 'gradeB' ? 'Grade B' : key === 'gradeC' ? 'Grade C' : 'Participation';
-                      
-                      return list.map((entry, idx) => {
-                        const team = db.teams.find(t => t.id === entry.teamId);
-                        const clsInfo = getCandidateClassInfo(entry.name, entry.teamId);
-                        return (
-                          <div key={key + idx} className="flex items-center justify-between text-xs py-0.5">
-                            <span className="shrink-0 w-5 text-center">{icon}</span>
-                            <b className="flex-1 text-brand-ink truncate ml-1 font-semibold">
-                              {entry.name}
-                              {clsInfo && <span className="text-[9px] text-brand-ink-soft ml-1">({clsInfo})</span>}
-                            </b>
-                            <span className="text-[9px] text-brand-ink-soft mr-2 shrink-0">
-                              {team ? team.name : ''} &bull; {label}
-                            </span>
-                            <span className="font-mono text-[10px] font-bold text-brand-gold-700 shrink-0">
-                              +{db.settings.points[key]}
-                            </span>
                           </div>
                         );
                       });
                     })}
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-brand-line/40 pt-2.5">
-                    <span className="text-[9px] text-brand-ink-soft ml-auto">
-                      {new Date(r.datetime).toLocaleDateString()} &bull; {new Date(r.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
                   </div>
                 </div>
               );
@@ -1281,6 +1257,7 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
           </div>
         )}
       </div>
+
     </div>
   );
 }
