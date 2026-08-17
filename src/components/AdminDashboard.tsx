@@ -273,12 +273,12 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
       setCloudSyncStatusMsg({
         type: 'success',
-        text: `✅ ഡാറ്റ ക്ലൗഡിലേക്ക് വിജയകരമായി അപ്‌ലോഡ് ചെയ്തു! മറ്റ് ഫോണുകളിലും ഡിവൈസുകളിലും ഇപ്പോൾ തന്നെ കാണാൻ സാധിക്കും (${updatedWithTimestamp.participants?.length || 0} participants, ${updatedWithTimestamp.programs?.length || 0} programs, ${updatedWithTimestamp.results?.length || 0} results).`
+        text: `✅ Data successfully synchronized to cloud! All mobile phones and connected devices are updated in real time (${updatedWithTimestamp.participants?.length || 0} participants, ${updatedWithTimestamp.programs?.length || 0} programs, ${updatedWithTimestamp.results?.length || 0} results).`
       });
     } catch (e: any) {
       setCloudSyncStatusMsg({
         type: 'error',
-        text: e?.message || 'ക്ലൗഡ് സിങ്ക് ചെയ്യുമ്പോൾ തടസ്സം നേരിട്ടു. വീണ്ടും ശ്രമിക്കുക.'
+        text: e?.message || 'Failed to sync with cloud. Please try again.'
       });
     } finally {
       setCloudSyncLoading(false);
@@ -2771,7 +2771,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-brand-gold-400 animate-ping" />
             <h2 className="font-display font-extrabold text-brand-gold-300 text-sm md:text-base">
-              🛡️ MASTER ADMIN PANEL (പ്രധാന അഡ്മിൻ കൺട്രോൾ പേജ്)
+              🛡️ MASTER ADMIN PANEL &bull; Live Operations Center
             </h2>
           </div>
           <span className="px-2.5 py-0.5 bg-brand-gold-500/20 text-brand-gold-300 text-[10px] font-mono font-bold rounded-full border border-brand-gold-500/30">
@@ -2779,7 +2779,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
           </span>
         </div>
         <p className="text-[11px] text-emerald-100/90 leading-snug">
-          ഈ പേജിൽ നിന്നു നൽകുന്ന റിസൾട്ടുകളും ഡാറ്റകളും തത്സമയം (Real-time) ക്ലൗഡ് വഴി വേഴ്സൽ (Vercel), നെറ്റ്ലിഫായ് (Netlify) എന്നീ എല്ലാ മൊബൈൽ ഫോണുകളിലേക്കും തനിയെ അപ്‌ഡേറ്റ് ആകുന്നതാണ്!
+          Results and scoring published here instantly update across all connected participant and audience devices in real time!
         </p>
       </div>
 
@@ -3583,7 +3583,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-black text-xs text-blue-950 uppercase tracking-wide">
-                Multi-Device Cloud Sync (മൾട്ടി-ഡിവൈസ് ലൈവ് സിങ്ക്):
+                Multi-Device Cloud Broadcast:
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 bg-blue-600 text-white flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
@@ -3591,7 +3591,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
               </span>
             </div>
             <span className="text-[11px] text-blue-900 block mt-0.5 font-medium">
-              മറ്റുള്ള ഫോണുകളിലും ഡിവൈസുകളിലും പുതിയ റിസൾട്ടുകളും പോയിന്റുകളും ഉടൻ കാണാൻ താഴെ കാണുന്ന ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.
+              Click the button to immediately push the latest results, standings, and points across all user devices.
             </span>
           </div>
         </div>
@@ -3604,7 +3604,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
             className="w-full sm:w-auto py-2 px-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${cloudSyncLoading ? 'animate-spin' : ''}`} />
-            <span>{cloudSyncLoading ? 'ക്ലൗഡിലേക്ക് അയക്കുന്നു...' : '⚡ Sync & Push to All Devices (എല്ലാ ഫോണിലേക്കും അയക്കുക)'}</span>
+            <span>{cloudSyncLoading ? 'Syncing to Cloud...' : '⚡ Sync & Push to All Devices'}</span>
           </button>
         </div>
       </div>
@@ -3760,7 +3760,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
                     <span>⚡</span> Google Apps Script Web App Webhook
                   </h4>
                   <p className="text-[10px] text-brand-ink-soft">
-                    Google Sign-in അല്ലെങ്കിൽ ഡൊമെയ്ൻ ക്രമീകരണങ്ങൾ ആവശ്യമില്ലാതെ ഷീറ്റിലേക്ക് ഡാറ്റ Push / Pull ചെയ്യാം.
+                    Push and pull data directly to Google Sheets in real time with high concurrency LockService.
                   </p>
                 </div>
                 <button
@@ -3954,18 +3954,18 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
             <div className="p-4 overflow-y-auto space-y-4 text-xs text-brand-green-950">
               <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 space-y-1.5">
-                <h4 className="font-bold text-emerald-900">📋 Setup Instructions (ലളിതമായ 3 ഘട്ടങ്ങൾ):</h4>
+                <h4 className="font-bold text-emerald-900">📋 Setup Instructions (Simple 3 Steps):</h4>
                 <ol className="list-decimal list-inside space-y-1 text-[11px] text-emerald-800">
-                  <li>നിങ്ങളുടെ ഗൂഗിൾ ഷീറ്റ് തുറന്ന് മുകളിലെ മെനുവിൽ <strong>Extensions &gt; Apps Script</strong> ക്ലിക്ക് ചെയ്യുക.</li>
-                  <li>അവിടെയുള്ള കോഡ് മാറ്റി താഴെ കാണുന്ന കോഡ് പേസ്റ്റ് ചെയ്ത് <strong>Save (💾)</strong> ചെയ്യുക.</li>
-                  <li>മുകളിൽ വലതുവശത്ത് <strong>Deploy &gt; New deployment</strong> ക്ലിക്ക് ചെയ്യുക.
+                  <li>Open your Google Sheet and click <strong>Extensions &gt; Apps Script</strong> from the top menu.</li>
+                  <li>Replace the existing code with the script below and click <strong>Save (💾)</strong>.</li>
+                  <li>Click <strong>Deploy &gt; New deployment</strong> in the top right corner.
                     <ul className="list-disc list-inside ml-4 mt-0.5 text-emerald-700">
                       <li>Type: <strong>Web app</strong></li>
                       <li>Execute as: <strong>Me</strong></li>
-                      <li>Who has access: <strong>Anyone</strong> (ഇത് വളരെ പ്രധാനമാണ്)</li>
+                      <li>Who has access: <strong>Anyone</strong> (Critical for seamless live syncing)</li>
                     </ul>
                   </li>
-                  <li>Deploy ചെയ്ത ശേഷം കിട്ടുന്ന <strong>Web app URL</strong> കോപ്പി ചെയ്ത് പോർട്ടലിൽ പേസ്റ്റ് ചെയ്യുക!</li>
+                  <li>Copy the resulting <strong>Web app URL</strong> and paste it into the Webhook field below.</li>
                 </ol>
               </div>
 
@@ -6772,7 +6772,7 @@ function handleRequest(e) {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
                           <label className="text-xs font-black text-brand-green-950 flex items-center gap-1.5">
-                            <span>🏷️</span> Age Category for Results (വിഭാഗം)
+                            <span>🏷️</span> Age Category for Results
                           </label>
                           <p className="text-[10px] text-brand-ink-soft">
                             Click any category below to enter/edit winners for that age group.

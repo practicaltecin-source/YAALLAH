@@ -56,7 +56,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 Application Reload Needed
               </h2>
               <p className="text-slate-300 text-xs mt-2 leading-relaxed">
-                പേജ് ലോഡ് ചെയ്യുന്നതിൽ ചെറിയൊരു തടസ്സം നേരിട്ടു. താഴെയുള്ള ബട്ടൺ ക്ലിക്ക് ചെയ്ത് റീലോഡ് ചെയ്യാം.
+                An unexpected interruption occurred. Please click the button below to refresh and resume.
               </p>
             </div>
 
@@ -74,7 +74,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs md:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Reload Page (റീലോഡ് ചെയ്യുക)</span>
+                <span>Reload Application</span>
               </button>
 
               <button

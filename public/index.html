@@ -76,7 +76,7 @@
           <input 
             type="text" 
             id="search-input" 
-            placeholder="Search by Competition (e.g. മിനിക്കഥ), Student, or Team..." 
+            placeholder="Search by Competition (e.g. Mini Story), Student, or Team..." 
             oninput="renderStack()"
             class="w-full bg-[#07110c] border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition-colors"
           />
@@ -95,8 +95,8 @@
 
           <select id="filter-gender" onchange="renderStack()" class="bg-[#07110c] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-400">
             <option value="All">All Genders</option>
-            <option value="Boys">Boys (ആൺകുട്ടികൾ)</option>
-            <option value="Girls">Girls (പെൺകുട്ടികൾ)</option>
+            <option value="Boys">Boys</option>
+            <option value="Girls">Girls</option>
           </select>
         </div>
       </div>
@@ -152,17 +152,17 @@
     // 6. Super Senior - Girls
     // Followed by Kids, Sub Junior, and General
     const HIERARCHY_ORDER = [
-      { age: 'Junior', gender: 'Boys', label: 'Junior - Boys (ജൂനിയർ ആൺകുട്ടികൾ)', color: 'border-sky-500/40 bg-sky-950/20 text-sky-300' },
-      { age: 'Junior', gender: 'Girls', label: 'Junior - Girls (ജൂനിയർ പെൺകുട്ടികൾ)', color: 'border-fuchsia-500/40 bg-fuchsia-950/20 text-fuchsia-300' },
-      { age: 'Senior', gender: 'Boys', label: 'Senior - Boys (സീനിയർ ആൺകുട്ടികൾ)', color: 'border-blue-500/40 bg-blue-950/20 text-blue-300' },
-      { age: 'Senior', gender: 'Girls', label: 'Senior - Girls (സീനിയർ പെൺകുട്ടികൾ)', color: 'border-pink-500/40 bg-pink-950/20 text-pink-300' },
-      { age: 'Super Senior', gender: 'Boys', label: 'Super Senior - Boys (സൂപ്പർ സീനിയർ ആൺകുട്ടികൾ)', color: 'border-indigo-500/40 bg-indigo-950/20 text-indigo-300' },
-      { age: 'Super Senior', gender: 'Girls', label: 'Super Senior - Girls (സൂപ്പർ സീനിയർ പെൺകുട്ടികൾ)', color: 'border-purple-500/40 bg-purple-950/20 text-purple-300' },
-      { age: 'Kids', gender: 'Boys', label: 'Kids - Boys (കിഡ്സ് ആൺകുട്ടികൾ)', color: 'border-amber-500/40 bg-amber-950/20 text-amber-300' },
-      { age: 'Kids', gender: 'Girls', label: 'Kids - Girls (കിഡ്സ് പെൺകുട്ടികൾ)', color: 'border-rose-500/40 bg-rose-950/20 text-rose-300' },
-      { age: 'Sub Junior', gender: 'Boys', label: 'Sub Junior - Boys (സബ് ജൂനിയർ ആൺകുട്ടികൾ)', color: 'border-teal-500/40 bg-teal-950/20 text-teal-300' },
-      { age: 'Sub Junior', gender: 'Girls', label: 'Sub Junior - Girls (സബ് ജൂനിയർ പെൺകുട്ടികൾ)', color: 'border-cyan-500/40 bg-cyan-950/20 text-cyan-300' },
-      { age: 'General', gender: 'General', label: 'General / Group Section (പൊതു വിഭാഗം)', color: 'border-emerald-500/40 bg-emerald-950/20 text-emerald-300' }
+      { age: 'Junior', gender: 'Boys', label: 'Junior - Boys', color: 'border-sky-500/40 bg-sky-950/20 text-sky-300' },
+      { age: 'Junior', gender: 'Girls', label: 'Junior - Girls', color: 'border-fuchsia-500/40 bg-fuchsia-950/20 text-fuchsia-300' },
+      { age: 'Senior', gender: 'Boys', label: 'Senior - Boys', color: 'border-blue-500/40 bg-blue-950/20 text-blue-300' },
+      { age: 'Senior', gender: 'Girls', label: 'Senior - Girls', color: 'border-pink-500/40 bg-pink-950/20 text-pink-300' },
+      { age: 'Super Senior', gender: 'Boys', label: 'Super Senior - Boys', color: 'border-indigo-500/40 bg-indigo-950/20 text-indigo-300' },
+      { age: 'Super Senior', gender: 'Girls', label: 'Super Senior - Girls', color: 'border-purple-500/40 bg-purple-950/20 text-purple-300' },
+      { age: 'Kids', gender: 'Boys', label: 'Kids - Boys', color: 'border-amber-500/40 bg-amber-950/20 text-amber-300' },
+      { age: 'Kids', gender: 'Girls', label: 'Kids - Girls', color: 'border-rose-500/40 bg-rose-950/20 text-rose-300' },
+      { age: 'Sub Junior', gender: 'Boys', label: 'Sub Junior - Boys', color: 'border-teal-500/40 bg-teal-950/20 text-teal-300' },
+      { age: 'Sub Junior', gender: 'Girls', label: 'Sub Junior - Girls', color: 'border-cyan-500/40 bg-cyan-950/20 text-cyan-300' },
+      { age: 'General', gender: 'General', label: 'General / Group Section', color: 'border-emerald-500/40 bg-emerald-950/20 text-emerald-300' }
     ];
 
     async function fetchResults(isManual = false) {

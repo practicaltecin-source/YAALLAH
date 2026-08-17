@@ -321,7 +321,7 @@ export default function Results({ db }: ResultsProps) {
               Official Results & Standings
             </h2>
             <p className="text-[11px] text-brand-ink-soft">
-              സെക്ഷൻ തിരിച്ച് ഔദ്യോഗിക മത്സര ഫലങ്ങൾ &middot; Boys & Girls Segregated Results
+              Official Competition Results &middot; Boys & Girls Segregated Standings
             </p>
           </div>
         </div>
@@ -408,7 +408,7 @@ export default function Results({ db }: ResultsProps) {
           }`}
         >
           <span className="text-base">👦</span>
-          <span className="leading-tight text-center">Boys Section (ആൺ)</span>
+          <span className="leading-tight text-center">Boys Section</span>
           <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${selectedGender === 'Boys' ? 'bg-white text-sky-900' : 'bg-sky-200 text-sky-950'}`}>
             {countBoys} Results
           </span>
@@ -426,7 +426,7 @@ export default function Results({ db }: ResultsProps) {
           }`}
         >
           <span className="text-base">👧</span>
-          <span className="leading-tight text-center">Girls Section (പെൺ)</span>
+          <span className="leading-tight text-center">Girls Section</span>
           <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${selectedGender === 'Girls' ? 'bg-white text-fuchsia-900' : 'bg-fuchsia-200 text-fuchsia-950'}`}>
             {countGirls} Results
           </span>
@@ -476,7 +476,7 @@ export default function Results({ db }: ResultsProps) {
       <div className="space-y-1.5">
         <div className="flex items-center justify-between px-1">
           <label className="text-[10px] font-bold text-brand-gold-800 tracking-wider uppercase flex items-center gap-1">
-            <span>🏷️</span> Filter by Age Category (വിഭാഗം)
+            <span>🏷️</span> Filter by Age Category
           </label>
           {selectedAge !== 'All' && (
             <button
@@ -522,7 +522,7 @@ export default function Results({ db }: ResultsProps) {
       {db.teams && db.teams.length > 0 && (
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-brand-gold-800 tracking-wider uppercase px-1">
-            Filter By Team (ടീം തിരിച്ച്)
+            Filter By Team
           </label>
           <div className="flex gap-2 overflow-x-auto pb-1 select-none scrollbar-none">
             <button
@@ -836,10 +836,10 @@ export default function Results({ db }: ResultsProps) {
                   <span className="text-2xl p-2 bg-sky-100 rounded-2xl border border-sky-300 shadow-2xs">👦</span>
                   <div>
                     <h3 className="font-display font-black text-sky-950 text-sm md:text-base">
-                      Boys Section Results (ആൺ)
+                      Boys Section Results
                     </h3>
                     <p className="text-[10px] text-sky-800 font-medium">
-                      ആൺകുട്ടികളുടെ വിഭാഗം മത്സര ഫലങ്ങൾ
+                      Boys category competition standings
                     </p>
                   </div>
                 </div>
@@ -866,10 +866,10 @@ export default function Results({ db }: ResultsProps) {
                   <span className="text-2xl p-2 bg-fuchsia-100 rounded-2xl border border-fuchsia-300 shadow-2xs">👧</span>
                   <div>
                     <h3 className="font-display font-black text-fuchsia-950 text-sm md:text-base">
-                      Girls Section Results (പെൺ)
+                      Girls Section Results
                     </h3>
                     <p className="text-[10px] text-fuchsia-800 font-medium">
-                      പെൺകുട്ടികളുടെ വിഭാഗം മത്സര ഫലങ്ങൾ
+                      Girls category competition standings
                     </p>
                   </div>
                 </div>
@@ -898,10 +898,10 @@ export default function Results({ db }: ResultsProps) {
                   <span className="text-2xl p-2 bg-emerald-100 rounded-2xl border border-emerald-300 shadow-2xs">👥</span>
                   <div>
                     <h3 className="font-display font-black text-emerald-950 text-sm md:text-base">
-                      General & Group Events (പൊതു & ഗ്രൂപ്പ് മത്സരങ്ങൾ)
+                      General &amp; Group Events
                     </h3>
                     <p className="text-[10px] text-emerald-800 font-medium">
-                      ടീം പോയിന്റ് പൊതു മത്സര ഫലങ്ങൾ
+                      General and team group competition standings
                     </p>
                   </div>
                 </div>
