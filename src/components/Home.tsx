@@ -896,55 +896,6 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
         onUpdateDb={onUpdateDb}
       />
 
-      {/* Spotlight Slider Widget */}
-      {slides.length > 0 && db.settings.showSpotlightSlider !== false && (
-        <div className="relative overflow-hidden rounded-2xl bg-brand-panel border border-brand-line shadow-sm">
-          <div className="p-4 bg-gradient-to-r from-brand-gold-400/10 to-brand-gold-500/5 border-b border-brand-line flex items-center justify-between">
-            <span className="text-xs font-bold text-brand-gold-700 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Honour Board spotlight
-            </span>
-            <span className="text-[10px] font-medium text-brand-ink-soft">
-              Slide {spotlightSlide + 1} of {slides.length}
-            </span>
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={spotlightSlide}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="p-5 flex items-center gap-4 text-brand-ink"
-              style={{
-                background: `linear-gradient(135deg, ${slides[spotlightSlide].color}08, ${slides[spotlightSlide].color}12)`
-              }}
-            >
-              <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-inner shrink-0 overflow-hidden"
-                style={{ backgroundColor: `${slides[spotlightSlide].color}25` }}
-              >
-                {slides[spotlightSlide].logoUrl ? (
-                  <img src={slides[spotlightSlide].logoUrl} alt={slides[spotlightSlide].name} className="w-full h-full object-contain p-1" />
-                ) : (
-                  slides[spotlightSlide].symbol
-                )}
-              </div>
-              <div className="flex-1">
-                <small className="text-[10px] font-bold uppercase tracking-wider text-brand-gold-700">
-                  {slides[spotlightSlide].label}
-                </small>
-                <b className="block text-base md:text-lg font-semibold tracking-wide text-brand-ink mt-0.5">
-                  {slides[spotlightSlide].name}
-                </b>
-                <span className="text-xs font-semibold text-brand-green-700">
-                  {slides[spotlightSlide].points} Points achieved
-                </span>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      )}
-
       {/* Live Schedule Segment */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
