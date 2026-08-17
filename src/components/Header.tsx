@@ -123,18 +123,16 @@ export default function Header({ currentView, onNavigate, isAdmin, onLogout, db,
             </span>
           </button>
 
-          <button
-            onClick={() => onNavigate(isAdmin ? 'dashboard' : 'adminGate')}
-            title={isAdmin ? "Go to Admin Dashboard" : "Log in as Admin"}
-            className={`p-1.5 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs active:scale-95 shrink-0 ${
-              isAdmin
-                ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400'
-                : 'bg-brand-green-800 hover:bg-brand-green-700 text-brand-gold-300 border-brand-green-600'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-extrabold">{isAdmin ? 'Admin Panel' : 'Admin Login'}</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => onNavigate('dashboard')}
+              title="Go to Admin Dashboard"
+              className="p-1.5 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs active:scale-95 shrink-0 bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-extrabold">Admin Panel</span>
+            </button>
+          )}
 
           {isAdmin && (
             <button
