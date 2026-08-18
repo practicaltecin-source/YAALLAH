@@ -54,6 +54,7 @@ export interface Participant {
 export interface CandidateResultEntry {
   name: string;
   teamId: string | null;
+  description?: string;
 }
 
 export interface Winners {

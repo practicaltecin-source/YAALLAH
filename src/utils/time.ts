@@ -25,6 +25,37 @@ export function parseTimeStringToMinutes(timeStr?: string): number | null {
   return hours * 60 + minutes;
 }
 
+export function parseDateString(dayStr?: string): Date | null {
+  if (!dayStr || !dayStr.trim()) return null;
+  const str = dayStr.trim();
+
+  // 1. ISO YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = str.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10);
+    const m = parseInt(isoMatch[2], 10) - 1;
+    const d = parseInt(isoMatch[3], 10);
+    return new Date(y, m, d);
+  }
+
+  // 2. DD/MM/YYYY or DD-MM-YYYY
+  const dmyMatch = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (dmyMatch) {
+    const d = parseInt(dmyMatch[1], 10);
+    const m = parseInt(dmyMatch[2], 10) - 1;
+    const y = parseInt(dmyMatch[3], 10);
+    return new Date(y, m, d);
+  }
+
+  // 3. Fallback date parse
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime()) && str.length >= 8) {
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  }
+
+  return null;
+}
+
 export type ProgramScheduleStatus = 'COMPLETED' | 'PASSED' | 'LIVE' | 'UPCOMING';
 
 export function getProgramScheduleStatus(p: Program, results: Result[]): ProgramScheduleStatus {
@@ -34,24 +65,19 @@ export function getProgramScheduleStatus(p: Program, results: Result[]): Program
   }
 
   const now = new Date();
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
-  // 2. Check date in p.day if formatted as DD/MM/YYYY or YYYY-MM-DD
-  if (p.day) {
-    const dateMatch = p.day.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    if (dateMatch) {
-      const dayNum = parseInt(dateMatch[1], 10);
-      const monthNum = parseInt(dateMatch[2], 10) - 1;
-      const yearNum = parseInt(dateMatch[3], 10);
-      const pDate = new Date(yearNum, monthNum, dayNum);
-      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      if (pDate.getTime() < todayDate.getTime()) {
-        return 'PASSED';
-      }
-      if (pDate.getTime() > todayDate.getTime()) {
-        return 'UPCOMING';
-      }
+  // 2. Check date in p.day or p.schedule
+  const progDate = parseDateString(p.day) || parseDateString(p.schedule);
+  if (progDate) {
+    if (progDate.getTime() < todayDate.getTime()) {
+      // Past day: event already concluded on yesterday or earlier!
+      return 'PASSED';
+    }
+    if (progDate.getTime() > todayDate.getTime()) {
+      // Future day: event is scheduled for tomorrow or future!
+      return 'UPCOMING';
     }
   }
 

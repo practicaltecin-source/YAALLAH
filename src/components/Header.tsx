@@ -147,11 +147,6 @@ export default function Header({ currentView, onNavigate, isAdmin, onLogout, db,
               <span className="text-[10px]">{db.settings?.isPublicSiteOffline ? '🔴 Link OFF' : '🟢 Link ON'}</span>
             </button>
           )}
-
-          <div className="flex items-center gap-1 px-2 py-1 bg-brand-green-100 text-brand-green-800 rounded-full font-medium text-xs border border-brand-green-500/10">
-            <div className={`w-1.5 h-1.5 rounded-full ${isAdmin ? 'bg-brand-gold-500 animate-pulse' : 'bg-emerald-500 animate-pulse'}`} />
-            {isAdmin ? 'Admin' : 'LIVE'}
-          </div>
         </div>
       </header>
 

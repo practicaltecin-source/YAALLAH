@@ -235,6 +235,11 @@ export default function Results({ db }: ResultsProps) {
                       <span>&bull;</span>
                       <span className="text-brand-gold-800 font-semibold">{labelText}</span>
                     </span>
+                    {winner.description && (
+                      <div className="text-[10px] text-slate-700 font-medium bg-slate-100/90 px-2 py-0.5 rounded-md mt-1 border border-slate-200 inline-flex items-center gap-1">
+                        <span>👥</span> <span>{winner.description}</span>
+                      </div>
+                    )}
                   </div>
                   <span className="font-mono text-xs font-black bg-brand-green-100 text-brand-green-950 px-2 py-0.5 rounded-lg border border-brand-green-300 shrink-0 ml-2">
                     +{winPts} PTS
@@ -279,6 +284,11 @@ export default function Results({ db }: ResultsProps) {
                       <span>&bull;</span>
                       <span className="text-brand-green-800 font-bold">{label}</span>
                     </span>
+                    {entry.description && (
+                      <div className="text-[10px] text-slate-700 font-medium bg-slate-100/90 px-2 py-0.5 rounded-md mt-1 border border-slate-200 inline-flex items-center gap-1">
+                        <span>👥</span> <span>{entry.description}</span>
+                      </div>
+                    )}
                   </div>
                   <span className="font-mono text-xs font-black bg-amber-100 text-amber-950 px-2 py-0.5 rounded-lg border border-amber-300 shrink-0 ml-2">
                     +{db.settings.points[key]} PTS
@@ -732,6 +742,11 @@ export default function Results({ db }: ResultsProps) {
                                           <span>&bull;</span>
                                           <span className="text-brand-gold-800 font-bold">{labelText}</span>
                                         </div>
+                                        {winner.description && (
+                                          <div className="text-[10px] text-slate-700 font-medium bg-slate-100/90 px-2 py-0.5 rounded-md mt-1 border border-slate-200 inline-flex items-center gap-1">
+                                            <span>👥</span> <span>{winner.description}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
 
@@ -779,6 +794,11 @@ export default function Results({ db }: ResultsProps) {
                                           <span>&bull;</span>
                                           <span className="text-brand-green-800 font-bold">{label}</span>
                                         </div>
+                                        {entry.description && (
+                                          <div className="text-[10px] text-slate-700 font-medium bg-slate-100/90 px-2 py-0.5 rounded-md mt-1 border border-slate-200 inline-flex items-center gap-1">
+                                            <span>👥</span> <span>{entry.description}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
 

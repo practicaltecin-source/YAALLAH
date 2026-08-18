@@ -1128,17 +1128,17 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
   // Boys Section States
   const [resBoysTies, setResBoysTies] = useState<Record<string, string>>({});
-  const [boysManualRows, setBoysManualRows] = useState<{ name: string; teamId: string; assign: string }[]>([]);
+  const [boysManualRows, setBoysManualRows] = useState<{ name: string; teamId: string; assign: string; description?: string }[]>([]);
   const [boysSearch, setBoysSearch] = useState('');
 
   // Girls Section States
   const [resGirlsTies, setResGirlsTies] = useState<Record<string, string>>({});
-  const [girlsManualRows, setGirlsManualRows] = useState<{ name: string; teamId: string; assign: string }[]>([]);
+  const [girlsManualRows, setGirlsManualRows] = useState<{ name: string; teamId: string; assign: string; description?: string }[]>([]);
   const [girlsSearch, setGirlsSearch] = useState('');
 
   // General Section States
   const [resGenTies, setResGenTies] = useState<Record<string, string>>({});
-  const [genManualRows, setGenManualRows] = useState<{ name: string; teamId: string; assign: string }[]>([]);
+  const [genManualRows, setGenManualRows] = useState<{ name: string; teamId: string; assign: string; description?: string }[]>([]);
   const [genSearch, setGenSearch] = useState('');
 
   // Admin Results Tab Filters
@@ -2033,7 +2033,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
     // Load Boys ties
     const boysTies: Record<string, string> = {};
-    const boysManual: { name: string; teamId: string; assign: string }[] = [];
+    const boysManual: { name: string; teamId: string; assign: string; description?: string }[] = [];
     if (boysRes) {
       const boysCandidates = db.participants.filter(p => (p.gender === 'Boys' || !p.gender) && (p.age === age || age === 'All') && p.programIds.includes(progId));
       boysCandidates.forEach(cand => {
@@ -2051,7 +2051,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
         const list = ['first', 'second', 'third'].includes(key) ? (boysRes.winners as any)[key] : (boysRes.grades as any)[key];
         (list || []).forEach((e: any) => {
           const isReg = boysCandidates.some(c => c.name === e.name && c.teamId === e.teamId);
-          if (!isReg) boysManual.push({ name: e.name, teamId: e.teamId || '', assign: key });
+          if (!isReg) boysManual.push({ name: e.name, teamId: e.teamId || '', assign: key, description: e.description || '' });
         });
       });
     }
@@ -2060,7 +2060,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
     // Load Girls ties
     const girlsTies: Record<string, string> = {};
-    const girlsManual: { name: string; teamId: string; assign: string }[] = [];
+    const girlsManual: { name: string; teamId: string; assign: string; description?: string }[] = [];
     if (girlsRes) {
       const girlsCandidates = db.participants.filter(p => p.gender === 'Girls' && (p.age === age || age === 'All') && p.programIds.includes(progId));
       girlsCandidates.forEach(cand => {
@@ -2078,7 +2078,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
         const list = ['first', 'second', 'third'].includes(key) ? (girlsRes.winners as any)[key] : (girlsRes.grades as any)[key];
         (list || []).forEach((e: any) => {
           const isReg = girlsCandidates.some(c => c.name === e.name && c.teamId === e.teamId);
-          if (!isReg) girlsManual.push({ name: e.name, teamId: e.teamId || '', assign: key });
+          if (!isReg) girlsManual.push({ name: e.name, teamId: e.teamId || '', assign: key, description: e.description || '' });
         });
       });
     }
@@ -2087,7 +2087,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
     // Load General ties
     const genTies: Record<string, string> = {};
-    const genManual: { name: string; teamId: string; assign: string }[] = [];
+    const genManual: { name: string; teamId: string; assign: string; description?: string }[] = [];
     if (genRes) {
       const genCandidates = db.participants.filter(p => (p.age === age || age === 'All') && p.programIds.includes(progId));
       genCandidates.forEach(cand => {
@@ -2105,7 +2105,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
         const list = ['first', 'second', 'third'].includes(key) ? (genRes.winners as any)[key] : (genRes.grades as any)[key];
         (list || []).forEach((e: any) => {
           const isReg = genCandidates.some(c => c.name === e.name && c.teamId === e.teamId);
-          if (!isReg) genManual.push({ name: e.name, teamId: e.teamId || '', assign: key });
+          if (!isReg) genManual.push({ name: e.name, teamId: e.teamId || '', assign: key, description: e.description || '' });
         });
       });
     }
@@ -2218,7 +2218,11 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
     boysManualRows.forEach(row => {
       if (!row.name.trim() || !row.assign) return;
-      const entry: CandidateResultEntry = { name: row.name.trim(), teamId: row.teamId || null };
+      const entry: CandidateResultEntry = {
+        name: row.name.trim(),
+        teamId: row.teamId || null,
+        description: row.description?.trim() || undefined
+      };
       if (['first', 'second', 'third'].includes(row.assign)) {
         (boysWinners as any)[row.assign].push(entry);
       } else {
@@ -2274,7 +2278,11 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
     girlsManualRows.forEach(row => {
       if (!row.name.trim() || !row.assign) return;
-      const entry: CandidateResultEntry = { name: row.name.trim(), teamId: row.teamId || null };
+      const entry: CandidateResultEntry = {
+        name: row.name.trim(),
+        teamId: row.teamId || null,
+        description: row.description?.trim() || undefined
+      };
       if (['first', 'second', 'third'].includes(row.assign)) {
         (girlsWinners as any)[row.assign].push(entry);
       } else {
@@ -2328,7 +2336,11 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
     genManualRows.forEach(row => {
       if (!row.name.trim() || !row.assign) return;
-      const entry: CandidateResultEntry = { name: row.name.trim(), teamId: row.teamId || null };
+      const entry: CandidateResultEntry = {
+        name: row.name.trim(),
+        teamId: row.teamId || null,
+        description: row.description?.trim() || undefined
+      };
       if (['first', 'second', 'third'].includes(row.assign)) {
         (genWinners as any)[row.assign].push(entry);
       } else {
@@ -6978,71 +6990,92 @@ function handleRequest(e) {
                                   </div>
                                 )}
 
-                                {/* Manual rows for Boys */}
-                                <div className="space-y-1.5 pt-2 border-t border-sky-200/80">
-                                  <div className="flex items-center justify-between text-[11px] font-bold text-sky-950">
-                                    <span>Manual / External Winners (Boys)</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => setBoysManualRows([...boysManualRows, { name: '', teamId: '', assign: '' }])}
-                                      className="px-2 py-0.5 bg-sky-200/70 hover:bg-sky-300 text-sky-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
-                                    >
-                                      + Add Entry
-                                    </button>
-                                  </div>
-                                  {boysManualRows.map((row, idx) => (
-                                    <div key={idx} className="flex gap-1.5 items-center bg-white p-1.5 rounded-xl border border-sky-200">
-                                      <input
-                                        type="text"
-                                        placeholder="Name"
-                                        value={row.name}
-                                        onChange={(e) => {
-                                          const next = [...boysManualRows];
-                                          next[idx].name = e.target.value;
-                                          setBoysManualRows(next);
-                                        }}
-                                        className="flex-1 min-w-0 px-2 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs"
-                                      />
-                                      <select
-                                        value={row.teamId}
-                                        onChange={(e) => {
-                                          const next = [...boysManualRows];
-                                          next[idx].teamId = e.target.value;
-                                          setBoysManualRows(next);
-                                        }}
-                                        className="w-24 px-1 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs"
-                                      >
-                                        <option value="">Team</option>
-                                        {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                      </select>
-                                      <select
-                                        value={row.assign}
-                                        onChange={(e) => {
-                                          const next = [...boysManualRows];
-                                          next[idx].assign = e.target.value;
-                                          setBoysManualRows(next);
-                                        }}
-                                        className="w-24 px-1 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs font-semibold"
-                                      >
-                                        <option value="">Place</option>
-                                        <option value="first">🥇 1st</option>
-                                        <option value="second">🥈 2nd</option>
-                                        <option value="third">🥉 3rd</option>
-                                        <option value="gradeA">🅰️ A</option>
-                                        <option value="gradeB">🅱️ B</option>
-                                        <option value="gradeC">🅲 C</option>
-                                        <option value="participation">🎗️ Part.</option>
-                                      </select>
+                                  {/* Manual rows for Boys */}
+                                  <div className="space-y-2 pt-2 border-t border-sky-200/80">
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-sky-950">
+                                      <span>Manual / Group / Team Winners (Boys)</span>
                                       <button
                                         type="button"
-                                        onClick={() => setBoysManualRows(boysManualRows.filter((_, rIdx) => rIdx !== idx))}
-                                        className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                        onClick={() => setBoysManualRows([...boysManualRows, { name: '', teamId: '', assign: '', description: '' }])}
+                                        className="px-2 py-0.5 bg-sky-200/70 hover:bg-sky-300 text-sky-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
                                       >
-                                        ✕
+                                        + Add Group / Winner
                                       </button>
                                     </div>
-                                  ))}
-                                </div>
+                                    {boysManualRows.map((row, idx) => (
+                                      <div key={idx} className="p-2 bg-white rounded-xl border border-sky-200 space-y-1.5 shadow-sm">
+                                        <div className="flex gap-1.5 items-center">
+                                          <input
+                                            type="text"
+                                            placeholder="Candidate or Group Name (e.g. Team KAAF)"
+                                            value={row.name}
+                                            onChange={(e) => {
+                                              const next = [...boysManualRows];
+                                              next[idx].name = e.target.value;
+                                              setBoysManualRows(next);
+                                            }}
+                                            className="flex-1 min-w-0 px-2 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs font-semibold"
+                                          />
+                                          <select
+                                            value={row.teamId}
+                                            onChange={(e) => {
+                                              const next = [...boysManualRows];
+                                              next[idx].teamId = e.target.value;
+                                              // Auto-fill name with team name if empty
+                                              if (!next[idx].name.trim() && e.target.value) {
+                                                const selTeam = db.teams.find(t => t.id === e.target.value);
+                                                if (selTeam) next[idx].name = selTeam.name;
+                                              }
+                                              setBoysManualRows(next);
+                                            }}
+                                            className="w-28 px-1.5 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs font-medium"
+                                          >
+                                            <option value="">Select Team</option>
+                                            {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                          </select>
+                                          <select
+                                            value={row.assign}
+                                            onChange={(e) => {
+                                              const next = [...boysManualRows];
+                                              next[idx].assign = e.target.value;
+                                              setBoysManualRows(next);
+                                            }}
+                                            className="w-24 px-1 py-1 bg-sky-50/50 border border-sky-200 rounded text-xs font-bold"
+                                          >
+                                            <option value="">Place</option>
+                                            <option value="first">🥇 1st</option>
+                                            <option value="second">🥈 2nd</option>
+                                            <option value="third">🥉 3rd</option>
+                                            <option value="gradeA">🅰️ A</option>
+                                            <option value="gradeB">🅱️ B</option>
+                                            <option value="gradeC">🅲 C</option>
+                                            <option value="participation">🎗️ Part.</option>
+                                          </select>
+                                          <button
+                                            type="button"
+                                            onClick={() => setBoysManualRows(boysManualRows.filter((_, rIdx) => rIdx !== idx))}
+                                            className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                            title="Remove entry"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                        <div>
+                                          <input
+                                            type="text"
+                                            placeholder="👥 Participants / Team Members (Optional, e.g. Siraj, Ali, Muneer, Zaid...)"
+                                            value={row.description || ''}
+                                            onChange={(e) => {
+                                              const next = [...boysManualRows];
+                                              next[idx].description = e.target.value;
+                                              setBoysManualRows(next);
+                                            }}
+                                            className="w-full px-2 py-1 bg-slate-50 border border-sky-100 rounded text-[11px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-sky-300"
+                                          />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
                               </div>
                             );
                           })()}
@@ -7148,71 +7181,91 @@ function handleRequest(e) {
                                   </div>
                                 )}
 
-                                {/* Manual rows for Girls */}
-                                <div className="space-y-1.5 pt-2 border-t border-pink-200/80">
-                                  <div className="flex items-center justify-between text-[11px] font-bold text-pink-950">
-                                    <span>Manual / External Winners (Girls)</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => setGirlsManualRows([...girlsManualRows, { name: '', teamId: '', assign: '' }])}
-                                      className="px-2 py-0.5 bg-pink-200/70 hover:bg-pink-300 text-pink-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
-                                    >
-                                      + Add Entry
-                                    </button>
-                                  </div>
-                                  {girlsManualRows.map((row, idx) => (
-                                    <div key={idx} className="flex gap-1.5 items-center bg-white p-1.5 rounded-xl border border-pink-200">
-                                      <input
-                                        type="text"
-                                        placeholder="Name"
-                                        value={row.name}
-                                        onChange={(e) => {
-                                          const next = [...girlsManualRows];
-                                          next[idx].name = e.target.value;
-                                          setGirlsManualRows(next);
-                                        }}
-                                        className="flex-1 min-w-0 px-2 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs"
-                                      />
-                                      <select
-                                        value={row.teamId}
-                                        onChange={(e) => {
-                                          const next = [...girlsManualRows];
-                                          next[idx].teamId = e.target.value;
-                                          setGirlsManualRows(next);
-                                        }}
-                                        className="w-24 px-1 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs"
-                                      >
-                                        <option value="">Team</option>
-                                        {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                      </select>
-                                      <select
-                                        value={row.assign}
-                                        onChange={(e) => {
-                                          const next = [...girlsManualRows];
-                                          next[idx].assign = e.target.value;
-                                          setGirlsManualRows(next);
-                                        }}
-                                        className="w-24 px-1 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs font-semibold"
-                                      >
-                                        <option value="">Place</option>
-                                        <option value="first">🥇 1st</option>
-                                        <option value="second">🥈 2nd</option>
-                                        <option value="third">🥉 3rd</option>
-                                        <option value="gradeA">🅰️ A</option>
-                                        <option value="gradeB">🅱️ B</option>
-                                        <option value="gradeC">🅲 C</option>
-                                        <option value="participation">🎗️ Part.</option>
-                                      </select>
+                                  {/* Manual rows for Girls */}
+                                  <div className="space-y-2 pt-2 border-t border-pink-200/80">
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-pink-950">
+                                      <span>Manual / Group / Team Winners (Girls)</span>
                                       <button
                                         type="button"
-                                        onClick={() => setGirlsManualRows(girlsManualRows.filter((_, rIdx) => rIdx !== idx))}
-                                        className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                        onClick={() => setGirlsManualRows([...girlsManualRows, { name: '', teamId: '', assign: '', description: '' }])}
+                                        className="px-2 py-0.5 bg-pink-200/70 hover:bg-pink-300 text-pink-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
                                       >
-                                        ✕
+                                        + Add Group / Winner
                                       </button>
                                     </div>
-                                  ))}
-                                </div>
+                                    {girlsManualRows.map((row, idx) => (
+                                      <div key={idx} className="p-2 bg-white rounded-xl border border-pink-200 space-y-1.5 shadow-sm">
+                                        <div className="flex gap-1.5 items-center">
+                                          <input
+                                            type="text"
+                                            placeholder="Candidate or Group Name (e.g. Team KAAF)"
+                                            value={row.name}
+                                            onChange={(e) => {
+                                              const next = [...girlsManualRows];
+                                              next[idx].name = e.target.value;
+                                              setGirlsManualRows(next);
+                                            }}
+                                            className="flex-1 min-w-0 px-2 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs font-semibold"
+                                          />
+                                          <select
+                                            value={row.teamId}
+                                            onChange={(e) => {
+                                              const next = [...girlsManualRows];
+                                              next[idx].teamId = e.target.value;
+                                              if (!next[idx].name.trim() && e.target.value) {
+                                                const selTeam = db.teams.find(t => t.id === e.target.value);
+                                                if (selTeam) next[idx].name = selTeam.name;
+                                              }
+                                              setGirlsManualRows(next);
+                                            }}
+                                            className="w-28 px-1.5 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs font-medium"
+                                          >
+                                            <option value="">Select Team</option>
+                                            {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                          </select>
+                                          <select
+                                            value={row.assign}
+                                            onChange={(e) => {
+                                              const next = [...girlsManualRows];
+                                              next[idx].assign = e.target.value;
+                                              setGirlsManualRows(next);
+                                            }}
+                                            className="w-24 px-1 py-1 bg-pink-50/50 border border-pink-200 rounded text-xs font-bold"
+                                          >
+                                            <option value="">Place</option>
+                                            <option value="first">🥇 1st</option>
+                                            <option value="second">🥈 2nd</option>
+                                            <option value="third">🥉 3rd</option>
+                                            <option value="gradeA">🅰️ A</option>
+                                            <option value="gradeB">🅱️ B</option>
+                                            <option value="gradeC">🅲 C</option>
+                                            <option value="participation">🎗️ Part.</option>
+                                          </select>
+                                          <button
+                                            type="button"
+                                            onClick={() => setGirlsManualRows(girlsManualRows.filter((_, rIdx) => rIdx !== idx))}
+                                            className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                            title="Remove entry"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                        <div>
+                                          <input
+                                            type="text"
+                                            placeholder="👥 Participants / Team Members (Optional, e.g. Fatima, Ayesha, Zainab...)"
+                                            value={row.description || ''}
+                                            onChange={(e) => {
+                                              const next = [...girlsManualRows];
+                                              next[idx].description = e.target.value;
+                                              setGirlsManualRows(next);
+                                            }}
+                                            className="w-full px-2 py-1 bg-slate-50 border border-pink-100 rounded text-[11px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-pink-300"
+                                          />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
                               </div>
                             );
                           })()}
@@ -7318,67 +7371,87 @@ function handleRequest(e) {
                                 )}
 
                                 {/* Manual rows for General */}
-                                <div className="space-y-1.5 pt-2 border-t border-emerald-200/80">
+                                <div className="space-y-2 pt-2 border-t border-emerald-200/80">
                                   <div className="flex items-center justify-between text-[11px] font-bold text-emerald-950">
-                                    <span>Manual / External Winners (General)</span>
+                                    <span>Manual / Group / Team Winners (General)</span>
                                     <button
                                       type="button"
-                                      onClick={() => setGenManualRows([...genManualRows, { name: '', teamId: '', assign: '' }])}
+                                      onClick={() => setGenManualRows([...genManualRows, { name: '', teamId: '', assign: '', description: '' }])}
                                       className="px-2 py-0.5 bg-emerald-200/70 hover:bg-emerald-300 text-emerald-900 rounded text-[10px] font-bold transition-colors cursor-pointer"
                                     >
-                                      + Add Entry
+                                      + Add Group / Winner
                                     </button>
                                   </div>
                                   {genManualRows.map((row, idx) => (
-                                    <div key={idx} className="flex gap-1.5 items-center bg-white p-1.5 rounded-xl border border-emerald-200">
-                                      <input
-                                        type="text"
-                                        placeholder="Name"
-                                        value={row.name}
-                                        onChange={(e) => {
-                                          const next = [...genManualRows];
-                                          next[idx].name = e.target.value;
-                                          setGenManualRows(next);
-                                        }}
-                                        className="flex-1 min-w-0 px-2 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs"
-                                      />
-                                      <select
-                                        value={row.teamId}
-                                        onChange={(e) => {
-                                          const next = [...genManualRows];
-                                          next[idx].teamId = e.target.value;
-                                          setGenManualRows(next);
-                                        }}
-                                        className="w-24 px-1 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs"
-                                      >
-                                        <option value="">Team</option>
-                                        {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                      </select>
-                                      <select
-                                        value={row.assign}
-                                        onChange={(e) => {
-                                          const next = [...genManualRows];
-                                          next[idx].assign = e.target.value;
-                                          setGenManualRows(next);
-                                        }}
-                                        className="w-24 px-1 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs font-semibold"
-                                      >
-                                        <option value="">Place</option>
-                                        <option value="first">🥇 1st</option>
-                                        <option value="second">🥈 2nd</option>
-                                        <option value="third">🥉 3rd</option>
-                                        <option value="gradeA">🅰️ A</option>
-                                        <option value="gradeB">🅱️ B</option>
-                                        <option value="gradeC">🅲 C</option>
-                                        <option value="participation">🎗️ Part.</option>
-                                      </select>
-                                      <button
-                                        type="button"
-                                        onClick={() => setGenManualRows(genManualRows.filter((_, rIdx) => rIdx !== idx))}
-                                        className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
-                                      >
-                                        ✕
-                                      </button>
+                                    <div key={idx} className="p-2 bg-white rounded-xl border border-emerald-200 space-y-1.5 shadow-sm">
+                                      <div className="flex gap-1.5 items-center">
+                                        <input
+                                          type="text"
+                                          placeholder="Candidate or Group Name (e.g. Team KAAF)"
+                                          value={row.name}
+                                          onChange={(e) => {
+                                            const next = [...genManualRows];
+                                            next[idx].name = e.target.value;
+                                            setGenManualRows(next);
+                                          }}
+                                          className="flex-1 min-w-0 px-2 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs font-semibold"
+                                        />
+                                        <select
+                                          value={row.teamId}
+                                          onChange={(e) => {
+                                            const next = [...genManualRows];
+                                            next[idx].teamId = e.target.value;
+                                            if (!next[idx].name.trim() && e.target.value) {
+                                              const selTeam = db.teams.find(t => t.id === e.target.value);
+                                              if (selTeam) next[idx].name = selTeam.name;
+                                            }
+                                            setGenManualRows(next);
+                                          }}
+                                          className="w-28 px-1.5 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs font-medium"
+                                        >
+                                          <option value="">Select Team</option>
+                                          {db.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                        </select>
+                                        <select
+                                          value={row.assign}
+                                          onChange={(e) => {
+                                            const next = [...genManualRows];
+                                            next[idx].assign = e.target.value;
+                                            setGenManualRows(next);
+                                          }}
+                                          className="w-24 px-1 py-1 bg-emerald-50/50 border border-emerald-200 rounded text-xs font-bold"
+                                        >
+                                          <option value="">Place</option>
+                                          <option value="first">🥇 1st</option>
+                                          <option value="second">🥈 2nd</option>
+                                          <option value="third">🥉 3rd</option>
+                                          <option value="gradeA">🅰️ A</option>
+                                          <option value="gradeB">🅱️ B</option>
+                                          <option value="gradeC">🅲 C</option>
+                                          <option value="participation">🎗️ Part.</option>
+                                        </select>
+                                        <button
+                                          type="button"
+                                          onClick={() => setGenManualRows(genManualRows.filter((_, rIdx) => rIdx !== idx))}
+                                          className="text-rose-600 hover:bg-rose-50 p-1 rounded cursor-pointer"
+                                          title="Remove entry"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                      <div>
+                                        <input
+                                          type="text"
+                                          placeholder="👥 Participants / Team Members (Optional, e.g. Siraj, Ali, Muneer, Zaid...)"
+                                          value={row.description || ''}
+                                          onChange={(e) => {
+                                            const next = [...genManualRows];
+                                            next[idx].description = e.target.value;
+                                            setGenManualRows(next);
+                                          }}
+                                          className="w-full px-2 py-1 bg-slate-50 border border-emerald-100 rounded text-[11px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-300"
+                                        />
+                                      </div>
                                     </div>
                                   ))}
                                 </div>

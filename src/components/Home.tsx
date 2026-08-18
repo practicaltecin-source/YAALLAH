@@ -3,7 +3,7 @@ import { Database, Result, Program } from '../types';
 import { AGE_ICONS, GENDER_ICONS, AGES } from '../db';
 import { Trophy, Clock, MapPin, Sparkles, Award, Volume2, VolumeX, AlertTriangle, CheckCircle2, Radio, Calendar, Printer, Share2, Copy, Check, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getProgramScheduleStatus, ProgramScheduleStatus } from '../utils/time';
+import { getProgramScheduleStatus, ProgramScheduleStatus, parseDateString } from '../utils/time';
 import { fireCelebrationConfetti, fireGoldWinnerBurst, fireContinuousVictoryConfetti } from '../utils/confetti';
 import { playVictoryFanfare, stopVictoryMusic, toggleAudioMute, isAudioMuted } from '../utils/victoryAudio';
 import { ChampionsPodiumCard } from './ChampionsPodiumCard';
@@ -64,11 +64,23 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
   const [currentNoticeIndex, setCurrentNoticeIndex] = useState(0);
   const [scheduleFilterTab, setScheduleFilterTab] = useState<'ACTIVE' | 'PASSED' | 'ALL'>('ACTIVE');
 
-  // Compute active notices
+  // Compute active notices (filters out past days' notices so yesterday's events do not appear as notifications today or tomorrow)
   const activeNotices = (() => {
     if (db.settings.showNotice === false) return [];
+    const now = new Date();
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     if (db.settings.notices && db.settings.notices.length > 0) {
-      const activeList = db.settings.notices.filter(n => n.active !== false);
+      const activeList = db.settings.notices.filter(n => {
+        if (n.active === false) return false;
+        if (n.date) {
+          const parsed = parseDateString(n.date);
+          if (parsed && parsed.getTime() < todayDate.getTime()) {
+            return false; // Skip past day announcements
+          }
+        }
+        return true;
+      });
       if (activeList.length > 0) return activeList;
     }
     if (db.settings.noticeText) {
@@ -1177,14 +1189,21 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
                           <div key={key + winIndex} className="flex items-center justify-between text-xs py-1 px-1.5 rounded-lg hover:bg-amber-50/50 transition-colors">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
                               <span className="shrink-0 text-base">{medal}</span>
-                              <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
-                                <b className="text-slate-900 uppercase font-black text-xs tracking-tight">
-                                  {winner.name}
-                                </b>
-                                {clsInfo && (
-                                  <span className="text-[11px] text-slate-600 font-bold">
-                                    ({clsInfo})
-                                  </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <b className="text-slate-900 uppercase font-black text-xs tracking-tight">
+                                    {winner.name}
+                                  </b>
+                                  {clsInfo && (
+                                    <span className="text-[11px] text-slate-600 font-bold">
+                                      ({clsInfo})
+                                    </span>
+                                  )}
+                                </div>
+                                {winner.description && (
+                                  <div className="text-[10px] text-slate-600 font-medium">
+                                    👥 {winner.description}
+                                  </div>
                                 )}
                               </div>
                             </div>
