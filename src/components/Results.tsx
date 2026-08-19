@@ -15,6 +15,27 @@ export default function Results({ db }: ResultsProps) {
   const [selectedTeam, setSelectedTeam] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'grouped' | 'split' | 'stream'>('grouped');
 
+  if (db.settings?.showResults === false) {
+    return (
+      <div className="view active pb-20 max-w-2xl mx-auto space-y-6 pt-6 font-sans">
+        <div className="p-8 bg-brand-panel border border-brand-gold-500/30 rounded-3xl text-center space-y-4 shadow-md">
+          <div className="text-5xl animate-bounce">🔒</div>
+          <h3 className="font-display font-extrabold text-brand-green-950 text-lg md:text-xl">
+            Results Publication on Hold
+          </h3>
+          <p className="text-xs md:text-sm text-brand-ink-soft max-w-md mx-auto leading-relaxed">
+            Competition results have been temporarily paused for grand final stage announcements. Stay tuned for the official live stage reveals!
+          </p>
+          <div className="pt-2">
+            <span className="px-3.5 py-1.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs">
+              <span>🤫</span> Climax Suspense Mode Active
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const getCandidateDetails = (name: string, teamId: string | null) => {
     const p = db.participants.find(x => x.name === name && (!teamId || x.teamId === teamId));
     return {

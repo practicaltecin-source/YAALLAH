@@ -147,6 +147,9 @@ export interface Settings {
   revealPodiumTime?: number;
   confettiUntil?: number;
   showScoreboard?: boolean;
+  showResults?: boolean;
+  hideTeamPoints?: boolean;
+  showHomeResultsAndSpotlight?: boolean;
   showCandidatePoints?: boolean;
   showDetailedScoreboard?: boolean;
   showIndividualChampions?: boolean;

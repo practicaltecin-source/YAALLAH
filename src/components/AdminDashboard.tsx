@@ -3617,6 +3617,120 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
         </div>
       </div>
 
+      {/* Suspense & Curiosity Controls (Admin Quick Bar) */}
+      <div className="p-4 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-400 rounded-2xl space-y-3 shadow-md">
+        <div className="flex items-center justify-between gap-2 border-b border-amber-400/40 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🔒</span>
+            <div>
+              <h4 className="font-extrabold text-xs text-brand-green-950 uppercase tracking-wide">
+                Suspense Mode &amp; Curiosity Controls (സസ്‌പെൻസ് കൺട്രോൾസ്)
+              </h4>
+              <p className="text-[10px] text-brand-green-900 font-medium">
+                അവസാന വിജയി പ്രഖ്യാപനം വരെ കുട്ടികൾക്ക് ആകാംഷ നിലനിർത്താൻ പോയിന്റുകളും റിസൾട്ടും ഹൈഡ് ചെയ്യാനുള്ള കൺട്രോളുകൾ.
+              </p>
+            </div>
+          </div>
+          {(db.settings?.hideTeamPoints || db.settings?.showResults === false || db.settings?.showHomeResultsAndSpotlight === false) && (
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase shrink-0 bg-amber-600 text-white animate-pulse">
+              🔒 SUSPENSE ACTIVE
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          {/* Toggle 1: Results Page */}
+          <div className="bg-white/80 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs">
+            <div>
+              <span className="block text-[11px] font-extrabold text-brand-green-950">
+                1. Results Page
+              </span>
+              <span className="text-[9px] text-slate-600 font-medium">
+                {db.settings?.showResults !== false ? '🟢 Results Live' : '🔒 Results Locked'}
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={db.settings?.showResults !== false}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  onUpdateDb({
+                    ...db,
+                    settings: {
+                      ...db.settings,
+                      showResults: enabled,
+                    }
+                  });
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5.5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
+
+          {/* Toggle 2: Hide Team Points */}
+          <div className="bg-white/80 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs">
+            <div>
+              <span className="block text-[11px] font-extrabold text-brand-green-950">
+                2. Hide Team Points
+              </span>
+              <span className="text-[9px] text-slate-600 font-medium">
+                {db.settings?.hideTeamPoints ? '🔒 Points Hidden' : '👁️ Points Visible'}
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={!!db.settings?.hideTeamPoints}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  onUpdateDb({
+                    ...db,
+                    settings: {
+                      ...db.settings,
+                      hideTeamPoints: enabled,
+                    }
+                  });
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5.5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-amber-600"></div>
+            </label>
+          </div>
+
+          {/* Toggle 3: Main Screen Results */}
+          <div className="bg-white/80 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs">
+            <div>
+              <span className="block text-[11px] font-extrabold text-brand-green-950">
+                3. Home Results
+              </span>
+              <span className="text-[9px] text-slate-600 font-medium">
+                {db.settings?.showHomeResultsAndSpotlight !== false ? '🟢 Home Results Shown' : '🔒 Home Results Hidden'}
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={db.settings?.showHomeResultsAndSpotlight !== false}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  onUpdateDb({
+                    ...db,
+                    settings: {
+                      ...db.settings,
+                      showHomeResultsAndSpotlight: enabled,
+                    }
+                  });
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5.5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-teal-600"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
       {/* Live Quiz & Stage Contest Operations Center */}
       <AdminQuizManager db={db} onUpdateDb={onUpdateDb} />
 

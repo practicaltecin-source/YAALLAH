@@ -77,7 +77,7 @@ export const AlwaysOnTeamBanner: React.FC<AlwaysOnTeamBannerProps> = ({ db }) =>
 
                 {showPoints ? (
                   <span className="bg-black/50 text-amber-300 font-mono font-black px-2 py-0.5 rounded-md text-[11px] border border-brand-gold-500/30">
-                    {team.totalPoints} PTS
+                    {db.settings?.hideTeamPoints ? '🔒' : `${team.totalPoints} PTS`}
                   </span>
                 ) : (
                   <span className="bg-white/10 text-white/90 font-mono font-black px-1.5 py-0.5 rounded-md text-[10px]">

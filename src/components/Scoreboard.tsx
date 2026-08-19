@@ -549,7 +549,7 @@ export default function Scoreboard({ db, onUpdateDb }: ScoreboardProps) {
             </div>
           </div>
           <span className="font-mono text-sm font-black bg-brand-green-800 text-brand-gold-300 px-3 py-1 rounded-xl shadow-xs">
-            {tb.grandTotal} PTS
+            {db.settings?.hideTeamPoints ? '🔒 Hidden' : `${tb.grandTotal} PTS`}
           </span>
         </div>
 
@@ -567,22 +567,22 @@ export default function Scoreboard({ db, onUpdateDb }: ScoreboardProps) {
                   <span>📝</span> Offstage
                 </span>
                 <span className="font-mono font-extrabold text-purple-950 bg-purple-200 px-2 py-0.5 rounded-md text-[11px]">
-                  {tb.offstageTotal} pts
+                  {db.settings?.hideTeamPoints ? '🔒' : `${tb.offstageTotal} pts`}
                 </span>
               </div>
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between items-center text-slate-800 font-medium">
                   <span>👦 Boys Offstage</span>
-                  <b className="font-mono text-sky-700 font-bold">{tb.offstageBoys} pts</b>
+                  <b className="font-mono text-sky-700 font-bold">{db.settings?.hideTeamPoints ? '🔒' : `${tb.offstageBoys} pts`}</b>
                 </div>
                 <div className="flex justify-between items-center text-slate-800 font-medium">
                   <span>👧 Girls Offstage</span>
-                  <b className="font-mono text-pink-700 font-bold">{tb.offstageGirls} pts</b>
+                  <b className="font-mono text-pink-700 font-bold">{db.settings?.hideTeamPoints ? '🔒' : `${tb.offstageGirls} pts`}</b>
                 </div>
                 {tb.offstageGeneral > 0 && (
                   <div className="flex justify-between items-center text-slate-800 font-medium">
                     <span>🌐 General Offstage</span>
-                    <b className="font-mono text-emerald-700 font-bold">{tb.offstageGeneral} pts</b>
+                    <b className="font-mono text-emerald-700 font-bold">{db.settings?.hideTeamPoints ? '🔒' : `${tb.offstageGeneral} pts`}</b>
                   </div>
                 )}
               </div>
@@ -595,22 +595,22 @@ export default function Scoreboard({ db, onUpdateDb }: ScoreboardProps) {
                   <span>🎭</span> Main Stage
                 </span>
                 <span className="font-mono font-extrabold text-emerald-950 bg-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
-                  {tb.mainstageTotal} pts
+                  {db.settings?.hideTeamPoints ? '🔒' : `${tb.mainstageTotal} pts`}
                 </span>
               </div>
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between items-center text-slate-800 font-medium">
                   <span>👦 Boys Main Stage</span>
-                  <b className="font-mono text-sky-700 font-bold">{tb.mainstageBoys} pts</b>
+                  <b className="font-mono text-sky-700 font-bold">{db.settings?.hideTeamPoints ? '🔒' : `${tb.mainstageBoys} pts`}</b>
                 </div>
                 <div className="flex justify-between items-center text-slate-800 font-medium">
                   <span>👧 Girls Main Stage</span>
-                  <b className="font-mono text-pink-700 font-bold">{tb.mainstageGirls} pts</b>
+                  <b className="font-mono text-pink-700 font-bold">{db.settings?.hideTeamPoints ? '🔒' : `${tb.mainstageGirls} pts`}</b>
                 </div>
                 {tb.mainstageGeneral > 0 && (
                   <div className="flex justify-between items-center text-slate-800 font-medium">
                     <span>🌐 General Main Stage</span>
-                    <b className="font-mono text-emerald-700 font-bold">{tb.mainstageGeneral} pts</b>
+                    <b className="font-mono text-emerald-700 font-bold">{db.settings?.hideTeamPoints ? '🔒' : `${tb.mainstageGeneral} pts`}</b>
                   </div>
                 )}
               </div>
@@ -653,36 +653,36 @@ export default function Scoreboard({ db, onUpdateDb }: ScoreboardProps) {
                     <span className={`font-mono font-extrabold px-2.5 py-0.5 rounded-md text-[11px] border ${
                       isZero ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-brand-gold-100/90 text-brand-green-900 border-brand-gold-300'
                     }`}>
-                      Total: {cObj.total} pts
+                      Total: {db.settings?.hideTeamPoints ? '🔒' : `${cObj.total} pts`}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
                     <div className="bg-purple-50/90 p-2 rounded-lg border border-purple-200/80 text-center">
                       <span className="block text-[9px] text-purple-900 font-extrabold">👦 Boys Offstage</span>
-                      <b className="font-mono text-xs text-sky-800 font-extrabold">{cObj.offstageBoys} pts</b>
+                      <b className="font-mono text-xs text-sky-800 font-extrabold">{db.settings?.hideTeamPoints ? '🔒' : `${cObj.offstageBoys} pts`}</b>
                     </div>
 
                     <div className="bg-purple-50/90 p-2 rounded-lg border border-purple-200/80 text-center">
                       <span className="block text-[9px] text-purple-900 font-extrabold">👧 Girls Offstage</span>
-                      <b className="font-mono text-xs text-pink-800 font-extrabold">{cObj.offstageGirls} pts</b>
+                      <b className="font-mono text-xs text-pink-800 font-extrabold">{db.settings?.hideTeamPoints ? '🔒' : `${cObj.offstageGirls} pts`}</b>
                     </div>
 
                     <div className="bg-emerald-50/90 p-2 rounded-lg border border-emerald-200/80 text-center">
                       <span className="block text-[9px] text-emerald-900 font-extrabold">👦 Boys Main Stage</span>
-                      <b className="font-mono text-xs text-sky-800 font-extrabold">{cObj.mainstageBoys} pts</b>
+                      <b className="font-mono text-xs text-sky-800 font-extrabold">{db.settings?.hideTeamPoints ? '🔒' : `${cObj.mainstageBoys} pts`}</b>
                     </div>
 
                     <div className="bg-emerald-50/90 p-2 rounded-lg border border-emerald-200/80 text-center">
                       <span className="block text-[9px] text-emerald-900 font-extrabold">👧 Girls Main Stage</span>
-                      <b className="font-mono text-xs text-pink-800 font-extrabold">{cObj.mainstageGirls} pts</b>
+                      <b className="font-mono text-xs text-pink-800 font-extrabold">{db.settings?.hideTeamPoints ? '🔒' : `${cObj.mainstageGirls} pts`}</b>
                     </div>
                   </div>
 
                   {(cObj.offstageGeneral > 0 || cObj.mainstageGeneral > 0) && (
                     <div className="bg-amber-50 p-1.5 rounded-lg border border-amber-200 text-center text-[10px] font-bold text-amber-900 flex justify-between px-3">
                       <span>🌐 General Section:</span>
-                      <span className="font-mono">{cObj.offstageGeneral + cObj.mainstageGeneral} pts</span>
+                      <span className="font-mono">{db.settings?.hideTeamPoints ? '🔒' : `${cObj.offstageGeneral + cObj.mainstageGeneral} pts`}</span>
                     </div>
                   )}
                 </div>
@@ -1109,7 +1109,15 @@ export default function Scoreboard({ db, onUpdateDb }: ScoreboardProps) {
                     <div className="flex items-center gap-3">
                       <div className="text-right shrink-0">{rankChange}</div>
                       <div className="font-mono text-base md:text-lg font-extrabold text-brand-green-800 shrink-0 min-w-[36px] text-right">
-                        {team.points} <span className="text-[10px] font-sans text-brand-ink-soft">PTS</span>
+                        {db.settings?.hideTeamPoints ? (
+                          <span className="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg shadow-2xs">
+                            🔒 Hidden
+                          </span>
+                        ) : (
+                          <>
+                            {team.points} <span className="text-[10px] font-sans text-brand-ink-soft">PTS</span>
+                          </>
+                        )}
                       </div>
                       {db.settings.showDetailedScoreboard !== false && (
                         <button className="p-1 rounded-lg text-brand-ink-soft hover:text-brand-ink hover:bg-brand-bg/80 transition-colors">

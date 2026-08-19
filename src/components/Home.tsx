@@ -1115,7 +1115,8 @@ export default function Home({ db, onNavigateToResults, onNavigateToQuiz, onUpda
       </div>
 
       {/* Latest Results Segment - Matching exact Vertical Stack Layout from screenshot */}
-      <div className="space-y-3">
+      {db.settings?.showHomeResultsAndSpotlight !== false && db.settings?.showResults !== false && (
+        <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-brand-gold-500" />
@@ -1218,7 +1219,7 @@ export default function Home({ db, onNavigateToResults, onNavigateToQuiz, onUpda
                                 {team ? `${team.symbol || ''} ${team.name}` : '—'}
                               </span>
                               <span className="font-mono text-xs font-black text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md min-w-[42px] text-center">
-                                +{assignedPts}
+                                {db.settings?.hideTeamPoints ? '🔒' : `+${assignedPts}`}
                               </span>
                             </div>
                           </div>
@@ -1231,7 +1232,8 @@ export default function Home({ db, onNavigateToResults, onNavigateToQuiz, onUpda
             })}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
     </div>
   );

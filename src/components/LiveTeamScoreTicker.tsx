@@ -165,7 +165,13 @@ export const LiveTeamScoreTicker: React.FC<LiveTeamScoreTickerProps> = ({ db, on
                 TOTAL POINTS
               </div>
               <div className="text-xl md:text-2xl font-black font-mono text-white tracking-tight drop-shadow">
-                {currentTeam.points} <span className="text-xs font-bold text-amber-300">PTS</span>
+                {db.settings?.hideTeamPoints ? (
+                  <span className="text-sm font-bold text-amber-300">🔒 Hidden</span>
+                ) : (
+                  <>
+                    {currentTeam.points} <span className="text-xs font-bold text-amber-300">PTS</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -2113,6 +2113,114 @@ export default function Settings({
               </label>
             </div>
 
+            {/* NEW SUSPENSE & CURIOSITY CONTROLS */}
+            <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-400/20 to-amber-500/10 border-2 border-amber-400/90 rounded-2xl space-y-4 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-amber-400/40 pb-2">
+                <span className="text-2xl">🔒</span>
+                <div>
+                  <h4 className="text-xs font-black text-brand-green-950 uppercase tracking-wide">
+                    Suspense &amp; Curiosity Controls (സസ്‌പെൻസ് കൺട്രോൾ)
+                  </h4>
+                  <p className="text-[10px] text-brand-green-900 font-semibold">
+                    അവസാന വിജയി പ്രഖ്യാപനം വരെ കുട്ടികൾക്ക് ആകാംഷ നിലനിർത്താൻ പോയിന്റുകളും റിസൾട്ടും ഹൈഡ് ചെയ്യാനുള്ള കൺട്രോളുകൾ.
+                  </p>
+                </div>
+              </div>
+
+              {/* Control 1: Enable / Disable Results Page */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="space-y-0.5 min-w-0 pr-2">
+                  <h5 className="text-xs font-extrabold text-brand-green-950">
+                    1. 📜 Results Page On/Off (റിസൾട്ട് പേജ് കാണിക്കുക / നിർത്തുക)
+                  </h5>
+                  <p className="text-[10px] text-brand-green-900 leading-tight">
+                    ഓഫ് ആക്കിയാൽ സന്ദർശകർക്ക് റിസൾട്ട് പേജ് ലോക്ക്ഡ് അവസ്ഥയിൽ കാണപ്പെടും.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={db.settings?.showResults !== false}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      const updated = {
+                        ...db,
+                        settings: {
+                          ...db.settings,
+                          showResults: enabled,
+                        }
+                      };
+                      onImportBackup(updated);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-green-800"></div>
+                </label>
+              </div>
+
+              {/* Control 2: Hide Team Points */}
+              <div className="flex items-center justify-between gap-3 flex-wrap border-t border-amber-400/30 pt-3">
+                <div className="space-y-0.5 min-w-0 pr-2">
+                  <h5 className="text-xs font-extrabold text-brand-green-950">
+                    2. 🫣 Hide Team Points (സ്കോർബോർഡിൽ പോയിന്റ് ഹൈഡ് ചെയ്യുക)
+                  </h5>
+                  <p className="text-[10px] text-brand-green-900 leading-tight">
+                    ഓൺ ആക്കിയാൽ ടീമുകളുടെ ടോട്ടൽ പോയിന്റ് സംഖ്യകൾ മറയ്ക്കപ്പെടും (🔒 Hidden). കുട്ടികൾക്ക് ആകെ പോയിന്റ് കൂട്ടി വിജയികളെ കണ്ടെത്താൻ കഴിയില്ല.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={!!db.settings?.hideTeamPoints}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      const updated = {
+                        ...db,
+                        settings: {
+                          ...db.settings,
+                          hideTeamPoints: enabled,
+                        }
+                      };
+                      onImportBackup(updated);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+
+              {/* Control 3: Show/Hide Home Screen Results & Spotlight */}
+              <div className="flex items-center justify-between gap-3 flex-wrap border-t border-amber-400/30 pt-3">
+                <div className="space-y-0.5 min-w-0 pr-2">
+                  <h5 className="text-xs font-extrabold text-brand-green-950">
+                    3. 🏠 Main Screen Results &amp; Spotlight (മെയിൻ സ്ക്രീനിലെ റിസൾട്ട് On/Off)
+                  </h5>
+                  <p className="text-[10px] text-brand-green-900 leading-tight">
+                    മെയിൻ സ്ക്രീനിലെ 'Latest Competition Results' ഭാഗം കാണിക്കണോ വേണ്ടയോ എന്ന് നിയന്ത്രിക്കുക.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={db.settings?.showHomeResultsAndSpotlight !== false}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      const updated = {
+                        ...db,
+                        settings: {
+                          ...db.settings,
+                          showHomeResultsAndSpotlight: enabled,
+                        }
+                      };
+                      onImportBackup(updated);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-700"></div>
+                </label>
+              </div>
+            </div>
+
             {/* Category Class Breakdown Info */}
             <div className="p-4 bg-brand-green-50/80 border border-brand-green-200 rounded-xl space-y-2.5">
               <div className="flex items-center justify-between">
