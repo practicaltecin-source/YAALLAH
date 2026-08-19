@@ -126,10 +126,13 @@ export function defaultDB(): Database {
       showScoreboard: true,
       showDetailedScoreboard: true,
       isPublicSiteOffline: false,
+      noticePopupOnLoad: false,
+      showLiveQuiz: true,
       notices: []
     },
     prevRanks: {},
-    lastModified: 1
+    lastModified: 1,
+    quizzes: []
   };
 }
 
@@ -304,7 +307,8 @@ export function normalizeDB(parsed: any): Database | null {
     settings: parsed.settings,
     prevRanks: parsed.prevRanks || {},
     lastModified: parsed.lastModified || 0,
-    isExplicitReset: Boolean(parsed.isExplicitReset)
+    isExplicitReset: Boolean(parsed.isExplicitReset),
+    quizzes: Array.isArray(parsed.quizzes) ? parsed.quizzes : []
   };
 }
 
@@ -564,6 +568,15 @@ export function mergeDatabase(localDb: Database, remoteDb: Database, forcePrefer
 
   const mergedSettings = mergeSettings(localDb?.settings, remoteDb?.settings, remoteTime >= localTime);
 
+  // Merge Quizzes
+  const quizMap = new Map<string, any>();
+  (localDb.quizzes || []).forEach(q => quizMap.set(q.id, q));
+  (remoteDb.quizzes || []).forEach(q => {
+    if (!quizMap.has(q.id) || remoteTime >= localTime) {
+      quizMap.set(q.id, q);
+    }
+  });
+
   return {
     ...localDb,
     teams: Array.from(teamMap.values()),
@@ -572,7 +585,8 @@ export function mergeDatabase(localDb: Database, remoteDb: Database, forcePrefer
     results: Array.from(resMap.values()),
     settings: mergedSettings,
     prevRanks: { ...(localDb.prevRanks || {}), ...(remoteDb.prevRanks || {}) },
-    lastModified: Math.max(localTime, remoteTime)
+    lastModified: Math.max(localTime, remoteTime),
+    quizzes: Array.from(quizMap.values())
   };
 }
 

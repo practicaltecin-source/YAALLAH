@@ -105,6 +105,22 @@ export interface NoticeItem {
   linkUrl?: string;
 }
 
+export interface QuizQuestion {
+  id: string;
+  questionNumber: number;
+  questionText: string;
+  options?: string[];
+  status: 'DRAFT' | 'ACTIVE' | 'ANSWER_REVEALED' | 'WINNER_ANNOUNCED' | 'COMPLETED';
+  correctAnswer?: string;
+  winnerName?: string;
+  winnerDetails?: string; // e.g. "Chest #204 / Team KAAF / Class 9"
+  winnerPrize?: string; // e.g. "Special Memento & Cash Prize"
+  sponsorName?: string; // e.g. "Sponsored by Al-Noor Traders"
+  createdAt: string;
+  revealedAt?: string;
+  winnerAnnouncedAt?: string;
+}
+
 export interface Settings {
   points: PointsSettings;
   adminPassword: string;
@@ -140,6 +156,7 @@ export interface Settings {
   notices?: NoticeItem[];
   noticePopupOnLoad?: boolean;
   noticeDurationSecs?: number;
+  showLiveQuiz?: boolean;
   colorTheme?: 'natural' | 'outdoor-light' | 'outdoor-dark' | 'solar-high-contrast' | 'royal-gold' | 'emerald-luxury' | 'crimson-ruby' | 'ocean-breeze';
   googleSheetId?: string;
   sheetWebhookUrl?: string;
@@ -157,8 +174,9 @@ export interface Database {
   prevRanks: Record<string, number>;
   lastModified: number;
   isExplicitReset?: boolean;
+  quizzes?: QuizQuestion[];
 }
 
-export type ViewName = 'home' | 'results' | 'scoreboard' | 'programs' | 'candidateSearch' | 'categories' | 'about' | 'settings' | 'adminGate' | 'dashboard';
+export type ViewName = 'home' | 'results' | 'scoreboard' | 'programs' | 'candidateSearch' | 'categories' | 'quiz' | 'about' | 'settings' | 'adminGate' | 'dashboard';
 
-export type AdminTab = 'teams' | 'programs' | 'participants' | 'results' | 'schedules';
+export type AdminTab = 'teams' | 'programs' | 'participants' | 'results' | 'schedules' | 'quizzes';

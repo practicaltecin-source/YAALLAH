@@ -56,6 +56,7 @@ import {
   X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import AdminQuizManager from './AdminQuizManager';
 import { 
   getSavedSheetId, 
   saveSheetId, 
@@ -2962,7 +2963,37 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
                 }}
                 className="w-4 h-4 rounded accent-amber-600 cursor-pointer"
               />
-              Enable Notice Board & Popup on Home Screen
+              Enable Notice Board on Home Screen
+            </label>
+          </div>
+
+          {/* Auto Popup Control Switch */}
+          <div className="p-3 bg-amber-100/70 rounded-xl border border-amber-300 flex items-center justify-between gap-3 text-xs">
+            <div>
+              <span className="font-extrabold text-amber-950 block text-[11px]">
+                ⚡ Auto-Popup on Initial Page Load (Recommended: OFF)
+              </span>
+              <span className="text-[10px] text-amber-900 block font-medium">
+                When OFF, users see a clean website entry. Notices open smoothly only when users click "Explore Live Results" or tap the notice banner.
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={!!db.settings?.noticePopupOnLoad}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  onUpdateDb({
+                    ...db,
+                    settings: {
+                      ...db.settings,
+                      noticePopupOnLoad: val
+                    }
+                  });
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
             </label>
           </div>
 
@@ -3585,6 +3616,9 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
           </label>
         </div>
       </div>
+
+      {/* Live Audience Quiz & Stage Contest Operations Center */}
+      <AdminQuizManager db={db} onUpdateDb={onUpdateDb} />
 
       {/* Multi-Device Cloud Live Sync Broadcast Bar */}
       <div className="p-3.5 bg-gradient-to-r from-blue-600/15 via-indigo-600/10 to-sky-500/15 border-2 border-blue-500/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">

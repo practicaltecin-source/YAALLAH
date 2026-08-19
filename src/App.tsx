@@ -38,6 +38,7 @@ import Results from './components/Results';
 import Scoreboard from './components/Scoreboard';
 import Programs from './components/Programs';
 import CandidateSearch from './components/CandidateSearch';
+import LiveQuizView from './components/LiveQuizView';
 import CategoriesGuide from './components/CategoriesGuide';
 import About from './components/About';
 import Settings from './components/Settings';
@@ -721,7 +722,15 @@ export default function App() {
             <Home 
               db={db} 
               onNavigateToResults={() => setCurrentView('results')} 
+              onNavigateToQuiz={() => setCurrentView('quiz')}
               onUpdateDb={handleUpdateDb}
+            />
+          )}
+
+          {currentView === 'quiz' && (
+            <LiveQuizView 
+              db={db} 
+              onNavigateHome={() => setCurrentView('home')}
             />
           )}
 

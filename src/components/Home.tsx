@@ -11,6 +11,7 @@ import { LiveTeamScoreTicker } from './LiveTeamScoreTicker';
 import { AlwaysOnTeamBanner } from './AlwaysOnTeamBanner';
 import { TeamPerformanceGraph } from './TeamPerformanceGraph';
 import { CelebrationPodiumModal } from './CelebrationPodiumModal';
+import LiveQuizCard from './LiveQuizCard';
 
 function ConfettiEffect() {
   const [particles, setParticles] = useState<{ id: number; left: string; delay: string; size: string; color: string; animClass: string }[]>([]);
@@ -52,10 +53,11 @@ function ConfettiEffect() {
 interface HomeProps {
   db: Database;
   onNavigateToResults: () => void;
+  onNavigateToQuiz?: () => void;
   onUpdateDb?: (newDb: Database) => void;
 }
 
-export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps) {
+export default function Home({ db, onNavigateToResults, onNavigateToQuiz, onUpdateDb }: HomeProps) {
   const [spotlightSlide, setSpotlightSlide] = useState(0);
   const [scheduleNowMins, setScheduleNowMins] = useState(0);
   const [showPodiumModal, setShowPodiumModal] = useState(false);
@@ -120,15 +122,15 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
     return () => clearInterval(interval);
   }, [activeNotices.length, db.settings.noticeDurationSecs]);
 
-  // Auto show notice popup on page load if active notices exist and not dismissed in session
+  // Auto show notice popup ONLY if admin explicitly turned on noticePopupOnLoad in Settings, otherwise keep entry clean
   useEffect(() => {
-    if (activeNotices.length > 0) {
+    if (activeNotices.length > 0 && db.settings?.noticePopupOnLoad === true) {
       const dismissed = sessionStorage.getItem('mrms_notice_popup_dismissed');
       if (!dismissed) {
         setShowNoticePopup(true);
       }
     }
-  }, [activeNotices.length]);
+  }, [activeNotices.length, db.settings?.noticePopupOnLoad]);
 
   const handleDismissNoticePopup = () => {
     setShowNoticePopup(false);
@@ -907,6 +909,9 @@ export default function Home({ db, onNavigateToResults, onUpdateDb }: HomeProps)
         handleClosePodiumModal={handleClosePodiumModal}
         onUpdateDb={onUpdateDb}
       />
+
+      {/* Live Audience Quiz Stage Card */}
+      <LiveQuizCard db={db} onOpenQuizView={onNavigateToQuiz || onNavigateToResults} />
 
       {/* Live Schedule Segment */}
       <div className="space-y-3">
