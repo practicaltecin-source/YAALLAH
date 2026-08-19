@@ -212,14 +212,14 @@ export default function AdminQuizManager({ db, onUpdateDb }: AdminQuizManagerPro
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-extrabold text-xs md:text-sm text-purple-950 uppercase tracking-wide">
-                Live Audience Quiz & Stage Contest Manager
+                Live Quiz & Stage Contest Manager
               </h3>
               <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-black rounded-full uppercase">
                 {quizzes.length} Questions
               </span>
             </div>
             <p className="text-[11px] text-purple-900 mt-0.5 font-medium leading-tight">
-              Create audience questions, launch them live on stage, reveal answers later, and announce winners with celebratory effects!
+              Create quiz questions, launch them live on stage, reveal answers later, and announce winners with celebratory effects!
             </p>
           </div>
         </div>

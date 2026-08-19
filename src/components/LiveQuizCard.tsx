@@ -33,7 +33,7 @@ export default function LiveQuizCard({ db, onOpenQuizView }: LiveQuizCardProps) 
         <div className="flex items-center gap-2">
           <span className="text-lg">🎯</span>
           <span className={`font-black text-xs uppercase tracking-wider ${hasWinner ? 'text-amber-950' : isLive ? 'text-purple-200' : 'text-purple-900'}`}>
-            Live Audience Stage Quiz
+            Live Quiz
           </span>
         </div>
 

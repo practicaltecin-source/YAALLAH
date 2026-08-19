@@ -3617,7 +3617,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
         </div>
       </div>
 
-      {/* Live Audience Quiz & Stage Contest Operations Center */}
+      {/* Live Quiz & Stage Contest Operations Center */}
       <AdminQuizManager db={db} onUpdateDb={onUpdateDb} />
 
       {/* Multi-Device Cloud Live Sync Broadcast Bar */}

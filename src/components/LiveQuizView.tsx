@@ -37,7 +37,7 @@ export default function LiveQuizView({ db, onNavigateHome }: LiveQuizViewProps) 
               <span>Interactive Stage Event</span>
             </div>
             <h1 className="font-display text-2xl md:text-3xl font-black tracking-wide text-white leading-tight flex items-center gap-2">
-              <span>🎯</span> Live Audience Quiz
+              <span>🎯</span> Live Quiz
             </h1>
             <p className="text-xs md:text-sm text-purple-200/90 mt-1 font-medium leading-relaxed">
               Test your knowledge, participate in live stage questions, and win exciting prizes!

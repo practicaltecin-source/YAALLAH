@@ -910,7 +910,7 @@ export default function Home({ db, onNavigateToResults, onNavigateToQuiz, onUpda
         onUpdateDb={onUpdateDb}
       />
 
-      {/* Live Audience Quiz Stage Card */}
+      {/* Live Quiz Stage Card */}
       <LiveQuizCard db={db} onOpenQuizView={onNavigateToQuiz || onNavigateToResults} />
 
       {/* Live Schedule Segment */}
