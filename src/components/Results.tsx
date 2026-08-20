@@ -263,7 +263,13 @@ export default function Results({ db }: ResultsProps) {
                     )}
                   </div>
                   <span className="font-mono text-xs font-black bg-brand-green-100 text-brand-green-950 px-2 py-0.5 rounded-lg border border-brand-green-300 shrink-0 ml-2">
-                    +{winPts} PTS
+                    {db.settings?.hideTeamPoints ? (
+                      <span className="flex items-center gap-1 text-[11px]" title="Points hidden until final announcement">
+                        <span>🔒</span> <span className="text-[10px]">Hidden</span>
+                      </span>
+                    ) : (
+                      `+${winPts} PTS`
+                    )}
                   </span>
                 </div>
               );
@@ -312,7 +318,13 @@ export default function Results({ db }: ResultsProps) {
                     )}
                   </div>
                   <span className="font-mono text-xs font-black bg-amber-100 text-amber-950 px-2 py-0.5 rounded-lg border border-amber-300 shrink-0 ml-2">
-                    +{db.settings.points[key]} PTS
+                    {db.settings?.hideTeamPoints ? (
+                      <span className="flex items-center gap-1 text-[11px]" title="Points hidden until final announcement">
+                        <span>🔒</span> <span className="text-[10px]">Hidden</span>
+                      </span>
+                    ) : (
+                      `+${db.settings.points[key]} PTS`
+                    )}
                   </span>
                 </div>
               );
@@ -772,7 +784,13 @@ export default function Results({ db }: ResultsProps) {
                                     </div>
 
                                     <span className="font-mono text-xs font-black bg-brand-green-100 text-brand-green-950 px-2 py-0.5 rounded-lg border border-brand-green-300 shrink-0 ml-2 shadow-2xs">
-                                      +{winPts} PTS {isGeneralOrGroup || isGen ? '(Team)' : ''}
+                                      {db.settings?.hideTeamPoints ? (
+                                        <span className="flex items-center gap-1 text-[11px]" title="Points hidden until final announcement">
+                                          <span>🔒</span> <span className="text-[10px]">Hidden</span>
+                                        </span>
+                                      ) : (
+                                        `+${winPts} PTS ${isGeneralOrGroup || isGen ? '(Team)' : ''}`
+                                      )}
                                     </span>
                                   </div>
                                 );
@@ -824,7 +842,13 @@ export default function Results({ db }: ResultsProps) {
                                     </div>
 
                                     <span className="font-mono text-xs font-black bg-amber-100 text-amber-950 px-2 py-0.5 rounded-lg border border-amber-300 shrink-0 ml-2 shadow-2xs">
-                                      +{db.settings.points[key]} PTS
+                                      {db.settings?.hideTeamPoints ? (
+                                        <span className="flex items-center gap-1 text-[11px]" title="Points hidden until final announcement">
+                                          <span>🔒</span> <span className="text-[10px]">Hidden</span>
+                                        </span>
+                                      ) : (
+                                        `+${db.settings.points[key]} PTS`
+                                      )}
                                     </span>
                                   </div>
                                 );
