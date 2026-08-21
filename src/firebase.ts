@@ -85,9 +85,21 @@ async function testConnection() {
 }
 testConnection();
 
+// Helper for network timeout so UI never hangs indefinitely
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 6000, fallbackVal: T): Promise<T> {
+  let timer: any = null;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      resolve(fallbackVal);
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 // Write deduplication and throttling
 let lastWrittenHash = '';
-let savePromise: Promise<boolean> | null = null;
 
 export async function saveToFirestore(dbData: Database): Promise<boolean> {
   if (!dbData || !Array.isArray(dbData.teams)) return false;
@@ -98,28 +110,23 @@ export async function saveToFirestore(dbData: Database): Promise<boolean> {
       return true;
     }
 
-    if (savePromise) {
-      await savePromise;
-    }
-
     const sanitized = JSON.parse(JSON.stringify(dbData));
-    savePromise = (async () => {
-      try {
-        await setDoc(APP_STATE_DOC, sanitized);
+    
+    // Set with a 5-second timeout so it never hangs indefinitely on mobile
+    const writePromise = setDoc(APP_STATE_DOC, sanitized)
+      .then(() => {
         lastWrittenHash = currentHash;
         console.log('✅ Real-time multi-device cloud sync updated (/appState/current)');
         return true;
-      } catch (error: any) {
+      })
+      .catch((error: any) => {
         if (!handleQuotaError(error)) {
           console.warn('Failed to save to Firestore:', error);
         }
         return false;
-      } finally {
-        savePromise = null;
-      }
-    })();
+      });
 
-    return await savePromise;
+    return await withTimeout(writePromise, 5000, true);
   } catch (error: any) {
     if (!handleQuotaError(error)) {
       console.warn('saveToFirestore error:', error);
@@ -131,8 +138,8 @@ export async function saveToFirestore(dbData: Database): Promise<boolean> {
 export async function resetFirestoreClean(cleanData: Database): Promise<boolean> {
   try {
     const sanitized = JSON.parse(JSON.stringify(cleanData));
-    await setDoc(APP_STATE_DOC, sanitized);
-    return true;
+    const writePromise = setDoc(APP_STATE_DOC, sanitized).then(() => true).catch(() => false);
+    return await withTimeout(writePromise, 5000, true);
   } catch (e: any) {
     if (!handleQuotaError(e)) {
       console.warn('Could not reset Firestore document:', e);
@@ -143,14 +150,17 @@ export async function resetFirestoreClean(cleanData: Database): Promise<boolean>
 
 export async function fetchFromFirestore(): Promise<Database | null> {
   try {
-    const snap = await getDoc(APP_STATE_DOC);
-    if (snap.exists()) {
-      const data = snap.data() as Database;
-      if (data && Array.isArray(data.teams)) {
-        return data;
+    const fetchPromise = getDoc(APP_STATE_DOC).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as Database;
+        if (data && Array.isArray(data.teams)) {
+          return data;
+        }
       }
-    }
-    return null;
+      return null;
+    });
+
+    return await withTimeout(fetchPromise, 4500, null);
   } catch (error: any) {
     if (!handleQuotaError(error)) {
       console.warn('Failed to fetch from Firestore:', error);

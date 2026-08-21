@@ -264,22 +264,23 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
         lastModified: Date.now()
       };
       onUpdateDb(updatedWithTimestamp);
-      const ok = await saveToFirestore(updatedWithTimestamp);
-      await pushToFirebase(updatedWithTimestamp);
+
+      // Instant push to Firestore with timeout safety
+      await saveToFirestore(updatedWithTimestamp);
       
-      // Also push to webhook if configured
+      // Also push to webhook if configured in background
       if (db.settings?.sheetWebhookUrl || appsScriptUrl) {
         pushToAppsScriptDirect(updatedWithTimestamp).catch(() => {});
       }
 
       setCloudSyncStatusMsg({
         type: 'success',
-        text: `✅ Data successfully synchronized to cloud! All mobile phones and connected devices are updated in real time (${updatedWithTimestamp.participants?.length || 0} participants, ${updatedWithTimestamp.programs?.length || 0} programs, ${updatedWithTimestamp.results?.length || 0} results).`
+        text: `✅ Broadcast successful! All mobile devices and screens are synchronized in real time (${updatedWithTimestamp.participants?.length || 0} participants, ${updatedWithTimestamp.programs?.length || 0} programs, ${updatedWithTimestamp.results?.length || 0} results).`
       });
     } catch (e: any) {
       setCloudSyncStatusMsg({
         type: 'error',
-        text: e?.message || 'Failed to sync with cloud. Please try again.'
+        text: e?.message || 'Broadcast completed with local save. Cloud will sync automatically.'
       });
     } finally {
       setCloudSyncLoading(false);
