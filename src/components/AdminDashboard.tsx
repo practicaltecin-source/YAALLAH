@@ -1130,16 +1130,19 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
   // Boys Section States
   const [resBoysTies, setResBoysTies] = useState<Record<string, string>>({});
+  const [resBoysDesc, setResBoysDesc] = useState<Record<string, string>>({});
   const [boysManualRows, setBoysManualRows] = useState<{ name: string; teamId: string; assign: string; description?: string }[]>([]);
   const [boysSearch, setBoysSearch] = useState('');
 
   // Girls Section States
   const [resGirlsTies, setResGirlsTies] = useState<Record<string, string>>({});
+  const [resGirlsDesc, setResGirlsDesc] = useState<Record<string, string>>({});
   const [girlsManualRows, setGirlsManualRows] = useState<{ name: string; teamId: string; assign: string; description?: string }[]>([]);
   const [girlsSearch, setGirlsSearch] = useState('');
 
   // General Section States
   const [resGenTies, setResGenTies] = useState<Record<string, string>>({});
+  const [resGenDesc, setResGenDesc] = useState<Record<string, string>>({});
   const [genManualRows, setGenManualRows] = useState<{ name: string; teamId: string; assign: string; description?: string }[]>([]);
   const [genSearch, setGenSearch] = useState('');
 
@@ -2035,18 +2038,31 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
 
     // Load Boys ties
     const boysTies: Record<string, string> = {};
+    const boysDescs: Record<string, string> = {};
     const boysManual: { name: string; teamId: string; assign: string; description?: string }[] = [];
     if (boysRes) {
       const boysCandidates = db.participants.filter(p => (p.gender === 'Boys' || !p.gender) && (p.age === age || age === 'All') && p.programIds.includes(progId));
       boysCandidates.forEach(cand => {
         let val = '';
+        let desc = '';
         ['first', 'second', 'third'].forEach(pos => {
-          if ((boysRes.winners as any)[pos]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = pos;
+          const match = (boysRes.winners as any)[pos]?.find((e: any) => e.name === cand.name && e.teamId === cand.teamId);
+          if (match) {
+            val = pos;
+            if (match.description) desc = match.description;
+          }
         });
         ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(g => {
-          if ((boysRes.grades as any)[g]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = g;
+          const match = (boysRes.grades as any)[g]?.find((e: any) => e.name === cand.name && e.teamId === cand.teamId);
+          if (match) {
+            val = g;
+            if (match.description) desc = match.description;
+          }
         });
-        if (val) boysTies[cand.id] = val;
+        if (val) {
+          boysTies[cand.id] = val;
+          if (desc) boysDescs[cand.id] = desc;
+        }
       });
 
       ['first', 'second', 'third', 'gradeA', 'gradeB', 'gradeC', 'participation'].forEach(key => {
@@ -2058,22 +2074,36 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
       });
     }
     setResBoysTies(boysTies);
+    setResBoysDesc(boysDescs);
     setBoysManualRows(boysManual);
 
     // Load Girls ties
     const girlsTies: Record<string, string> = {};
+    const girlsDescs: Record<string, string> = {};
     const girlsManual: { name: string; teamId: string; assign: string; description?: string }[] = [];
     if (girlsRes) {
       const girlsCandidates = db.participants.filter(p => p.gender === 'Girls' && (p.age === age || age === 'All') && p.programIds.includes(progId));
       girlsCandidates.forEach(cand => {
         let val = '';
+        let desc = '';
         ['first', 'second', 'third'].forEach(pos => {
-          if ((girlsRes.winners as any)[pos]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = pos;
+          const match = (girlsRes.winners as any)[pos]?.find((e: any) => e.name === cand.name && e.teamId === cand.teamId);
+          if (match) {
+            val = pos;
+            if (match.description) desc = match.description;
+          }
         });
         ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(g => {
-          if ((girlsRes.grades as any)[g]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = g;
+          const match = (girlsRes.grades as any)[g]?.find((e: any) => e.name === cand.name && e.teamId === cand.teamId);
+          if (match) {
+            val = g;
+            if (match.description) desc = match.description;
+          }
         });
-        if (val) girlsTies[cand.id] = val;
+        if (val) {
+          girlsTies[cand.id] = val;
+          if (desc) girlsDescs[cand.id] = desc;
+        }
       });
 
       ['first', 'second', 'third', 'gradeA', 'gradeB', 'gradeC', 'participation'].forEach(key => {
@@ -2085,22 +2115,36 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
       });
     }
     setResGirlsTies(girlsTies);
+    setResGirlsDesc(girlsDescs);
     setGirlsManualRows(girlsManual);
 
     // Load General ties
     const genTies: Record<string, string> = {};
+    const genDescs: Record<string, string> = {};
     const genManual: { name: string; teamId: string; assign: string; description?: string }[] = [];
     if (genRes) {
       const genCandidates = db.participants.filter(p => (p.age === age || age === 'All') && p.programIds.includes(progId));
       genCandidates.forEach(cand => {
         let val = '';
+        let desc = '';
         ['first', 'second', 'third'].forEach(pos => {
-          if ((genRes.winners as any)[pos]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = pos;
+          const match = (genRes.winners as any)[pos]?.find((e: any) => e.name === cand.name && e.teamId === cand.teamId);
+          if (match) {
+            val = pos;
+            if (match.description) desc = match.description;
+          }
         });
         ['gradeA', 'gradeB', 'gradeC', 'participation'].forEach(g => {
-          if ((genRes.grades as any)[g]?.some((e: any) => e.name === cand.name && e.teamId === cand.teamId)) val = g;
+          const match = (genRes.grades as any)[g]?.find((e: any) => e.name === cand.name && e.teamId === cand.teamId);
+          if (match) {
+            val = g;
+            if (match.description) desc = match.description;
+          }
         });
-        if (val) genTies[cand.id] = val;
+        if (val) {
+          genTies[cand.id] = val;
+          if (desc) genDescs[cand.id] = desc;
+        }
       });
 
       ['first', 'second', 'third', 'gradeA', 'gradeB', 'gradeC', 'participation'].forEach(key => {
@@ -2112,6 +2156,7 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
       });
     }
     setResGenTies(genTies);
+    setResGenDesc(genDescs);
     setGenManualRows(genManual);
   };
 
@@ -2134,10 +2179,13 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
       setResAge('Kids');
       setResActiveView('dual');
       setResBoysTies({});
+      setResBoysDesc({});
       setBoysManualRows([]);
       setResGirlsTies({});
+      setResGirlsDesc({});
       setGirlsManualRows([]);
       setResGenTies({});
+      setResGenDesc({});
       setGenManualRows([]);
       setEditingId(null);
     }
@@ -2148,10 +2196,13 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
     setResProgId(pid);
     if (!pid) {
       setResBoysTies({});
+      setResBoysDesc({});
       setBoysManualRows([]);
       setResGirlsTies({});
+      setResGirlsDesc({});
       setGirlsManualRows([]);
       setResGenTies({});
+      setResGenDesc({});
       setGenManualRows([]);
       setEditingId(null);
       return;
@@ -2210,7 +2261,12 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
     boysCandidates.forEach(p => {
       const val = resBoysTies[p.id];
       if (!val) return;
-      const entry: CandidateResultEntry = { name: p.name, teamId: p.teamId };
+      const desc = resBoysDesc[p.id]?.trim();
+      const entry: CandidateResultEntry = { 
+        name: p.name, 
+        teamId: p.teamId,
+        description: desc || undefined
+      };
       if (['first', 'second', 'third'].includes(val)) {
         (boysWinners as any)[val].push(entry);
       } else {
@@ -2270,7 +2326,12 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
     girlsCandidates.forEach(p => {
       const val = resGirlsTies[p.id];
       if (!val) return;
-      const entry: CandidateResultEntry = { name: p.name, teamId: p.teamId };
+      const desc = resGirlsDesc[p.id]?.trim();
+      const entry: CandidateResultEntry = { 
+        name: p.name, 
+        teamId: p.teamId,
+        description: desc || undefined
+      };
       if (['first', 'second', 'third'].includes(val)) {
         (girlsWinners as any)[val].push(entry);
       } else {
@@ -2328,7 +2389,12 @@ export default function AdminDashboard({ db, onUpdateDb, onAddResultDirectly, on
     genCandidates.forEach(p => {
       const val = resGenTies[p.id];
       if (!val) return;
-      const entry: CandidateResultEntry = { name: p.name, teamId: p.teamId };
+      const desc = resGenDesc[p.id]?.trim();
+      const entry: CandidateResultEntry = { 
+        name: p.name, 
+        teamId: p.teamId,
+        description: desc || undefined
+      };
       if (['first', 'second', 'third'].includes(val)) {
         (genWinners as any)[val].push(entry);
       } else {
@@ -5386,45 +5452,72 @@ function handleRequest(e) {
                           <div className="pt-2 border-t border-brand-line/60 space-y-1.5">
                             {/* 1st */}
                             {r.winners.first?.length > 0 && (
-                              <div className="flex items-center gap-2 text-xs bg-amber-50/80 p-1.5 rounded-xl border border-amber-200">
-                                <span className="text-sm shrink-0">🥇</span>
-                                <span className="font-bold text-amber-950 truncate flex-1">
-                                  {r.winners.first.map(w => w.name).join(', ')}
-                                </span>
-                                {r.winners.first[0]?.teamId && (
-                                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-200/80 text-amber-950 rounded shrink-0">
-                                    {db.teams.find(t => t.id === r.winners.first[0].teamId)?.name}
+                              <div className="text-xs bg-amber-50/80 p-1.5 rounded-xl border border-amber-200 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm shrink-0">🥇</span>
+                                  <span className="font-bold text-amber-950 truncate flex-1">
+                                    {r.winners.first.map(w => w.name).join(', ')}
                                   </span>
+                                  {r.winners.first[0]?.teamId && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-200/80 text-amber-950 rounded shrink-0">
+                                      {db.teams.find(t => t.id === r.winners.first[0].teamId)?.name}
+                                    </span>
+                                  )}
+                                </div>
+                                {r.winners.first.some(w => w.description) && (
+                                  <div className="pl-6 text-[11px] text-amber-900 font-medium">
+                                    {r.winners.first.filter(w => w.description).map((w, i) => (
+                                      <p key={i} className="truncate">👥 {w.description}</p>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
                             )}
 
                             {/* 2nd */}
                             {r.winners.second?.length > 0 && (
-                              <div className="flex items-center gap-2 text-xs bg-slate-100/90 p-1.5 rounded-xl border border-slate-300">
-                                <span className="text-sm shrink-0">🥈</span>
-                                <span className="font-bold text-slate-900 truncate flex-1">
-                                  {r.winners.second.map(w => w.name).join(', ')}
-                                </span>
-                                {r.winners.second[0]?.teamId && (
-                                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-200 text-slate-900 rounded shrink-0">
-                                    {db.teams.find(t => t.id === r.winners.second[0].teamId)?.name}
+                              <div className="text-xs bg-slate-100/90 p-1.5 rounded-xl border border-slate-300 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm shrink-0">🥈</span>
+                                  <span className="font-bold text-slate-900 truncate flex-1">
+                                    {r.winners.second.map(w => w.name).join(', ')}
                                   </span>
+                                  {r.winners.second[0]?.teamId && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-200 text-slate-900 rounded shrink-0">
+                                      {db.teams.find(t => t.id === r.winners.second[0].teamId)?.name}
+                                    </span>
+                                  )}
+                                </div>
+                                {r.winners.second.some(w => w.description) && (
+                                  <div className="pl-6 text-[11px] text-slate-800 font-medium">
+                                    {r.winners.second.filter(w => w.description).map((w, i) => (
+                                      <p key={i} className="truncate">👥 {w.description}</p>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
                             )}
 
                             {/* 3rd */}
                             {r.winners.third?.length > 0 && (
-                              <div className="flex items-center gap-2 text-xs bg-amber-50/50 p-1.5 rounded-xl border border-amber-200/70">
-                                <span className="text-sm shrink-0">🥉</span>
-                                <span className="font-bold text-amber-900 truncate flex-1">
-                                  {r.winners.third.map(w => w.name).join(', ')}
-                                </span>
-                                {r.winners.third[0]?.teamId && (
-                                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded shrink-0">
-                                    {db.teams.find(t => t.id === r.winners.third[0].teamId)?.name}
+                              <div className="text-xs bg-amber-50/50 p-1.5 rounded-xl border border-amber-200/70 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm shrink-0">🥉</span>
+                                  <span className="font-bold text-amber-900 truncate flex-1">
+                                    {r.winners.third.map(w => w.name).join(', ')}
                                   </span>
+                                  {r.winners.third[0]?.teamId && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded shrink-0">
+                                      {db.teams.find(t => t.id === r.winners.third[0].teamId)?.name}
+                                    </span>
+                                  )}
+                                </div>
+                                {r.winners.third.some(w => w.description) && (
+                                  <div className="pl-6 text-[11px] text-amber-800 font-medium">
+                                    {r.winners.third.filter(w => w.description).map((w, i) => (
+                                      <p key={i} className="truncate">👥 {w.description}</p>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -7101,9 +7194,9 @@ function handleRequest(e) {
                                       return (
                                         <div
                                           key={p.id}
-                                          className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
+                                          className={`p-2 rounded-xl border text-xs transition-all space-y-1.5 ${
                                             val === 'first'
-                                              ? 'bg-amber-100 border-amber-300 font-bold'
+                                              ? 'bg-amber-100/90 border-amber-300 font-bold'
                                               : val === 'second'
                                               ? 'bg-slate-200 border-slate-300 font-bold'
                                               : val === 'third'
@@ -7113,26 +7206,40 @@ function handleRequest(e) {
                                               : 'bg-white border-sky-200'
                                           }`}
                                         >
-                                          <div className="min-w-0 pr-2">
-                                            <b className="text-brand-ink block truncate">{p.name}</b>
-                                            <small className="text-brand-ink-soft block text-[10px]">
-                                              {teamName} &bull; <span className="font-mono font-bold text-sky-800">#{p.number}</span>
-                                            </small>
+                                          <div className="flex items-center justify-between">
+                                            <div className="min-w-0 pr-2">
+                                              <b className="text-brand-ink block truncate">{p.name}</b>
+                                              <small className="text-brand-ink-soft block text-[10px]">
+                                                {teamName} &bull; <span className="font-mono font-bold text-sky-800">#{p.number}</span>
+                                              </small>
+                                            </div>
+                                            <select
+                                              value={val}
+                                              onChange={(e) => setResBoysTies({ ...resBoysTies, [p.id]: e.target.value })}
+                                              className="px-2 py-1 bg-white border border-sky-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
+                                            >
+                                              <option value="">— Award —</option>
+                                              <option value="first">🥇 1st Place</option>
+                                              <option value="second">🥈 2nd Place</option>
+                                              <option value="third">🥉 3rd Place</option>
+                                              <option value="gradeA">🅰️ Grade A</option>
+                                              <option value="gradeB">🅱️ Grade B</option>
+                                              <option value="gradeC">🅲 Grade C</option>
+                                              <option value="participation">🎗️ Part.</option>
+                                            </select>
                                           </div>
-                                          <select
-                                            value={val}
-                                            onChange={(e) => setResBoysTies({ ...resBoysTies, [p.id]: e.target.value })}
-                                            className="px-2 py-1 bg-white border border-sky-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
-                                          >
-                                            <option value="">— Award —</option>
-                                            <option value="first">🥇 1st Place</option>
-                                            <option value="second">🥈 2nd Place</option>
-                                            <option value="third">🥉 3rd Place</option>
-                                            <option value="gradeA">🅰️ Grade A</option>
-                                            <option value="gradeB">🅱️ Grade B</option>
-                                            <option value="gradeC">🅲 Grade C</option>
-                                            <option value="participation">🎗️ Part.</option>
-                                          </select>
+                                          {val && (
+                                            <div className="pt-1.5 border-t border-sky-200/70 flex items-center gap-1.5">
+                                              <span className="text-[10px] text-sky-900 font-bold shrink-0">👥 വിവരണം / പങ്കെടുത്തവർ:</span>
+                                              <input
+                                                type="text"
+                                                placeholder="Co-participants / Note (Optional, e.g. Siraj, Ali, Muneer...)"
+                                                value={resBoysDesc[p.id] || ''}
+                                                onChange={(e) => setResBoysDesc({ ...resBoysDesc, [p.id]: e.target.value })}
+                                                className="flex-1 px-2 py-0.5 bg-white border border-sky-300 rounded text-[11px] text-slate-800 placeholder:text-slate-400 font-normal focus:outline-none focus:border-brand-gold-500"
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       );
                                     })}
@@ -7292,9 +7399,9 @@ function handleRequest(e) {
                                       return (
                                         <div
                                           key={p.id}
-                                          className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
+                                          className={`p-2 rounded-xl border text-xs transition-all space-y-1.5 ${
                                             val === 'first'
-                                              ? 'bg-amber-100 border-amber-300 font-bold'
+                                              ? 'bg-amber-100/90 border-amber-300 font-bold'
                                               : val === 'second'
                                               ? 'bg-slate-200 border-slate-300 font-bold'
                                               : val === 'third'
@@ -7304,26 +7411,40 @@ function handleRequest(e) {
                                               : 'bg-white border-pink-200'
                                           }`}
                                         >
-                                          <div className="min-w-0 pr-2">
-                                            <b className="text-brand-ink block truncate">{p.name}</b>
-                                            <small className="text-brand-ink-soft block text-[10px]">
-                                              {teamName} &bull; <span className="font-mono font-bold text-pink-800">#{p.number}</span>
-                                            </small>
+                                          <div className="flex items-center justify-between">
+                                            <div className="min-w-0 pr-2">
+                                              <b className="text-brand-ink block truncate">{p.name}</b>
+                                              <small className="text-brand-ink-soft block text-[10px]">
+                                                {teamName} &bull; <span className="font-mono font-bold text-pink-800">#{p.number}</span>
+                                              </small>
+                                            </div>
+                                            <select
+                                              value={val}
+                                              onChange={(e) => setResGirlsTies({ ...resGirlsTies, [p.id]: e.target.value })}
+                                              className="px-2 py-1 bg-white border border-pink-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
+                                            >
+                                              <option value="">— Award —</option>
+                                              <option value="first">🥇 1st Place</option>
+                                              <option value="second">🥈 2nd Place</option>
+                                              <option value="third">🥉 3rd Place</option>
+                                              <option value="gradeA">🅰️ Grade A</option>
+                                              <option value="gradeB">🅱️ Grade B</option>
+                                              <option value="gradeC">🅲 Grade C</option>
+                                              <option value="participation">🎗️ Part.</option>
+                                            </select>
                                           </div>
-                                          <select
-                                            value={val}
-                                            onChange={(e) => setResGirlsTies({ ...resGirlsTies, [p.id]: e.target.value })}
-                                            className="px-2 py-1 bg-white border border-pink-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
-                                          >
-                                            <option value="">— Award —</option>
-                                            <option value="first">🥇 1st Place</option>
-                                            <option value="second">🥈 2nd Place</option>
-                                            <option value="third">🥉 3rd Place</option>
-                                            <option value="gradeA">🅰️ Grade A</option>
-                                            <option value="gradeB">🅱️ Grade B</option>
-                                            <option value="gradeC">🅲 Grade C</option>
-                                            <option value="participation">🎗️ Part.</option>
-                                          </select>
+                                          {val && (
+                                            <div className="pt-1.5 border-t border-pink-200/70 flex items-center gap-1.5">
+                                              <span className="text-[10px] text-pink-900 font-bold shrink-0">👥 വിവരണം / പങ്കെടുത്തവർ:</span>
+                                              <input
+                                                type="text"
+                                                placeholder="Co-participants / Note (Optional, e.g. Fatima, Ayesha, Zainab...)"
+                                                value={resGirlsDesc[p.id] || ''}
+                                                onChange={(e) => setResGirlsDesc({ ...resGirlsDesc, [p.id]: e.target.value })}
+                                                className="flex-1 px-2 py-0.5 bg-white border border-pink-300 rounded text-[11px] text-slate-800 placeholder:text-slate-400 font-normal focus:outline-none focus:border-brand-gold-500"
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       );
                                     })}
@@ -7481,9 +7602,9 @@ function handleRequest(e) {
                                       return (
                                         <div
                                           key={p.id}
-                                          className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
+                                          className={`p-2 rounded-xl border text-xs transition-all space-y-1.5 ${
                                             val === 'first'
-                                              ? 'bg-amber-100 border-amber-300 font-bold'
+                                              ? 'bg-amber-100/90 border-amber-300 font-bold'
                                               : val === 'second'
                                               ? 'bg-slate-200 border-slate-300 font-bold'
                                               : val === 'third'
@@ -7493,26 +7614,40 @@ function handleRequest(e) {
                                               : 'bg-white border-emerald-200'
                                           }`}
                                         >
-                                          <div className="min-w-0 pr-2">
-                                            <b className="text-brand-ink block truncate">{p.name}</b>
-                                            <small className="text-brand-ink-soft block text-[10px]">
-                                              {teamName} &bull; <span className="font-mono font-bold text-emerald-800">#{p.number}</span>
-                                            </small>
+                                          <div className="flex items-center justify-between">
+                                            <div className="min-w-0 pr-2">
+                                              <b className="text-brand-ink block truncate">{p.name}</b>
+                                              <small className="text-brand-ink-soft block text-[10px]">
+                                                {teamName} &bull; <span className="font-mono font-bold text-emerald-800">#{p.number}</span>
+                                              </small>
+                                            </div>
+                                            <select
+                                              value={val}
+                                              onChange={(e) => setResGenTies({ ...resGenTies, [p.id]: e.target.value })}
+                                              className="px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
+                                            >
+                                              <option value="">— Award —</option>
+                                              <option value="first">🥇 1st Place</option>
+                                              <option value="second">🥈 2nd Place</option>
+                                              <option value="third">🥉 3rd Place</option>
+                                              <option value="gradeA">🅰️ Grade A</option>
+                                              <option value="gradeB">🅱️ Grade B</option>
+                                              <option value="gradeC">🅲 Grade C</option>
+                                              <option value="participation">🎗️ Part.</option>
+                                            </select>
                                           </div>
-                                          <select
-                                            value={val}
-                                            onChange={(e) => setResGenTies({ ...resGenTies, [p.id]: e.target.value })}
-                                            className="px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
-                                          >
-                                            <option value="">— Award —</option>
-                                            <option value="first">🥇 1st Place</option>
-                                            <option value="second">🥈 2nd Place</option>
-                                            <option value="third">🥉 3rd Place</option>
-                                            <option value="gradeA">🅰️ Grade A</option>
-                                            <option value="gradeB">🅱️ Grade B</option>
-                                            <option value="gradeC">🅲 Grade C</option>
-                                            <option value="participation">🎗️ Part.</option>
-                                          </select>
+                                          {val && (
+                                            <div className="pt-1.5 border-t border-emerald-200/70 flex items-center gap-1.5">
+                                              <span className="text-[10px] text-emerald-900 font-bold shrink-0">👥 വിവരണം / പങ്കെടുത്തവർ:</span>
+                                              <input
+                                                type="text"
+                                                placeholder="Co-participants / Note (Optional, e.g. Group Members, Topic...)"
+                                                value={resGenDesc[p.id] || ''}
+                                                onChange={(e) => setResGenDesc({ ...resGenDesc, [p.id]: e.target.value })}
+                                                className="flex-1 px-2 py-0.5 bg-white border border-emerald-300 rounded text-[11px] text-slate-800 placeholder:text-slate-400 font-normal focus:outline-none focus:border-brand-gold-500"
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       );
                                     })}

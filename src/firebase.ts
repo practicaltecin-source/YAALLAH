@@ -1,6 +1,16 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, onSnapshot, setDoc, getDoc, getDocFromServer } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  getFirestore, 
+  doc, 
+  onSnapshot, 
+  setDoc, 
+  getDoc, 
+  getDocFromServer,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from 'firebase/firestore';
 import firebaseConfigJson from '../firebase-applet-config.json';
 import { Database } from './types';
 
@@ -22,7 +32,18 @@ const resolvedConfig = {
 
 const app = !getApps().length ? initializeApp(resolvedConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app, resolvedConfig.firestoreDatabaseId || '(default)');
+
+let firestoreInstance: ReturnType<typeof getFirestore>;
+try {
+  firestoreInstance = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  }, resolvedConfig.firestoreDatabaseId || '(default)');
+} catch (e) {
+  firestoreInstance = getFirestore(app, resolvedConfig.firestoreDatabaseId || '(default)');
+}
+
+export const db = firestoreInstance;
 
 const APP_STATE_DOC = doc(db, 'appState', 'current');
 
@@ -76,10 +97,12 @@ export function handleQuotaError(error: any): boolean {
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
+  } catch (error: any) {
     if (handleQuotaError(error)) return;
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firestore client connecting...");
+    const msg = error?.message || String(error || '');
+    const code = error?.code || '';
+    if (code === 'unavailable' || msg.includes('the client is offline') || msg.includes('Could not reach Cloud Firestore') || msg.includes('unavailable')) {
+      console.info("Firestore operating in offline cache mode until connection is active.");
     }
   }
 }
